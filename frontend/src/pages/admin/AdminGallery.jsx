@@ -192,7 +192,7 @@ const AlbumModal = ({ initial, onClose, onSaved, showToast }) => {
             <label style={labelStyle}>Description</label>
             <textarea value={form.description} onChange={set("description")} rows={3} style={{ ...inputStyle, resize: "vertical" }} />
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+          <div className="modal-form-grid" style={{ gap: 16, marginBottom: 16 }}>
             <div>
               <label style={labelStyle}>Category</label>
               <select value={form.category} onChange={set("category")} style={inputStyle}>

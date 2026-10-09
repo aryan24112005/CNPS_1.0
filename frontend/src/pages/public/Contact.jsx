@@ -4,11 +4,11 @@ import { getSiteSettings, submitContact } from "../../services/publicService";
 const EMPTY_FORM = { name: "", email: "", phone: "", subject: "", message: "" };
 
 export default function Contact() {
-  const [settings, setSettings] = useState(null);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [errors, setErrors] = useState({});
-  const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [settings,    setSettings]    = useState(null);
+  const [form,        setForm]        = useState(EMPTY_FORM);
+  const [errors,      setErrors]      = useState({});
+  const [submitting,  setSubmitting]  = useState(false);
+  const [success,     setSuccess]     = useState(false);
   const [serverError, setServerError] = useState("");
 
   useEffect(() => {
@@ -17,8 +17,8 @@ export default function Contact() {
 
   const validate = () => {
     const e = {};
-    if (!form.name.trim()) e.name = "Name is required.";
-    if (!form.email.trim()) e.email = "Email is required.";
+    if (!form.name.trim())    e.name    = "Name is required.";
+    if (!form.email.trim())   e.email   = "Email is required.";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Enter a valid email address.";
     if (!form.subject.trim()) e.subject = "Subject is required.";
     if (!form.message.trim()) e.message = "Message is required.";
@@ -36,7 +36,6 @@ export default function Contact() {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
-
     setSubmitting(true);
     setServerError("");
     try {
@@ -51,31 +50,22 @@ export default function Contact() {
   };
 
   const inputStyle = (field) => ({
-    width: "100%",
-    padding: "12px 16px",
+    width: "100%", padding: "12px 16px",
     borderRadius: "var(--radius-md)",
     border: `1.5px solid ${errors[field] ? "var(--danger)" : "var(--border)"}`,
-    fontSize: "0.95rem",
-    color: "var(--text-main)",
-    outline: "none",
-    background: "#fff",
+    fontSize: "0.95rem", color: "var(--text-main)",
+    outline: "none", background: "#fff",
     transition: "border-color 0.2s",
     fontFamily: "var(--font-body)",
+    boxSizing: "border-box",
   });
 
   const labelStyle = {
-    display: "block",
-    fontSize: "0.88rem",
-    fontWeight: 600,
-    color: "var(--navy)",
-    marginBottom: 6,
+    display: "block", fontSize: "0.88rem", fontWeight: 600,
+    color: "var(--navy)", marginBottom: 6,
   };
 
-  const errorStyle = {
-    fontSize: "0.78rem",
-    color: "var(--danger)",
-    marginTop: 4,
-  };
+  const errorStyle = { fontSize: "0.78rem", color: "var(--danger)", marginTop: 4 };
 
   return (
     <>
@@ -95,15 +85,11 @@ export default function Contact() {
       {/* Content */}
       <section className="section">
         <div className="container">
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1.6fr",
-              gap: 40,
-              alignItems: "start",
-            }}
-            className="contact-grid"
-          >
+          {/*
+            .contact-grid defined in global.css:
+            1fr 1.6fr on desktop (≥900px), single column on mobile
+          */}
+          <div className="contact-grid">
             {/* ── Left: Contact Info ── */}
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
               <div>
@@ -114,37 +100,23 @@ export default function Contact() {
                 </p>
               </div>
 
-              {/* Info items */}
+              {/* Info cards */}
               {[
-                { icon: "bi-geo-alt-fill", label: "Address", value: settings?.address, color: "var(--primary)" },
-                { icon: "bi-telephone-fill", label: "Phone", value: settings?.phone, color: "var(--gold)" },
-                { icon: "bi-envelope-fill", label: "Email", value: settings?.email, color: "var(--primary)" },
+                { icon: "bi-geo-alt-fill",  label: "Address", value: settings?.address, color: "var(--primary)" },
+                { icon: "bi-telephone-fill",label: "Phone",   value: settings?.phone,   color: "var(--gold)" },
+                { icon: "bi-envelope-fill", label: "Email",   value: settings?.email,   color: "var(--primary)" },
               ].map(({ icon, label, value, color }) =>
                 value ? (
-                  <div
-                    key={label}
-                    style={{
-                      display: "flex",
-                      gap: 16,
-                      alignItems: "flex-start",
-                      padding: "18px 20px",
-                      background: "var(--bg-soft-blue)",
-                      borderRadius: "var(--radius-md)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 42,
-                        height: 42,
-                        borderRadius: "var(--radius-sm)",
-                        background: "#fff",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                        boxShadow: "var(--shadow-sm)",
-                      }}
-                    >
+                  <div key={label} style={{
+                    display: "flex", gap: 16, alignItems: "flex-start",
+                    padding: "18px 20px", background: "var(--bg-soft-blue)",
+                    borderRadius: "var(--radius-md)",
+                  }}>
+                    <div style={{
+                      width: 42, height: 42, borderRadius: "var(--radius-sm)",
+                      background: "#fff", display: "flex", alignItems: "center",
+                      justifyContent: "center", flexShrink: 0, boxShadow: "var(--shadow-sm)",
+                    }}>
                       <i className={`bi ${icon}`} style={{ fontSize: "1.1rem", color }} />
                     </div>
                     <div>
@@ -161,37 +133,21 @@ export default function Contact() {
 
               {/* Map embed */}
               {(() => {
-                // The stored value may be:
-                //   a) A valid Google Maps embed URL  → use directly
-                //   b) A full <iframe>…</iframe> string → extract src
-                //   c) A short share link (maps.app.goo.gl) → not embeddable, use fallback
-                //   d) Empty → use fallback
-                const FALLBACK_EMBED =
-                  "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d4212.697217159162!2d79.48014427609375!3d27.233761176457268!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39747beda2b542b3%3A0x3b884b32c2beea73!2sCnps%20Public%20School!5e1!3m2!1sen!2sin!4v1791519023414!5m2!1sen!2sin";
-
-                const resolveEmbedSrc = (raw) => {
-                  if (!raw || !raw.trim()) return FALLBACK_EMBED;
-
-                  // Case: full iframe HTML — extract src attribute
-                  const srcMatch = raw.match(/src=["']([^"']+)["']/i);
-                  if (srcMatch) return srcMatch[1];
-
-                  // Case: already a valid embed URL
-                  if (raw.startsWith("https://www.google.com/maps/embed")) return raw;
-
-                  // Case: short link or regular maps link — not embeddable
-                  return FALLBACK_EMBED;
-                };
-
-                const embedSrc = resolveEmbedSrc(settings?.mapEmbedUrl);
-
+                const FALLBACK = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d4212.697217159162!2d79.48014427609375!3d27.233761176457268!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39747beda2b542b3%3A0x3b884b32c2beea73!2sCnps%20Public%20School!5e1!3m2!1sen!2sin!4v1791519023414!5m2!1sen!2sin";
+                const raw = settings?.mapEmbedUrl;
+                let src = FALLBACK;
+                if (raw?.trim()) {
+                  const m = raw.match(/src=["']([^"']+)["']/i);
+                  if (m) src = m[1];
+                  else if (raw.startsWith("https://www.google.com/maps/embed")) src = raw;
+                }
                 return (
                   <div style={{ borderRadius: "var(--radius-md)", overflow: "hidden", border: "1px solid var(--border)" }}>
                     <iframe
-                      src={embedSrc}
+                      src={src}
                       title="CNPS Public School Location"
                       width="100%"
-                      height="280"
+                      height="260"
                       style={{ border: 0, display: "block" }}
                       allowFullScreen
                       loading="lazy"
@@ -203,30 +159,19 @@ export default function Contact() {
             </div>
 
             {/* ── Right: Form ── */}
-            <div className="card" style={{ padding: 36 }}>
+            <div className="card contact-form-card" style={{ padding: 36 }}>
               {success ? (
                 <div style={{ textAlign: "center", padding: "40px 20px" }}>
-                  <div
-                    style={{
-                      width: 72,
-                      height: 72,
-                      background: "#DCFCE7",
-                      borderRadius: "50%",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      margin: "0 auto 20px",
-                    }}
-                  >
+                  <div style={{
+                    width: 72, height: 72, background: "#DCFCE7", borderRadius: "50%",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    margin: "0 auto 20px",
+                  }}>
                     <i className="bi bi-check-lg" style={{ fontSize: "2rem", color: "var(--success)" }} />
                   </div>
                   <h3 style={{ marginBottom: 10 }}>Message Sent!</h3>
                   <p>Thank you for reaching out. We'll get back to you as soon as possible.</p>
-                  <button
-                    className="btn btn-primary"
-                    style={{ marginTop: 16 }}
-                    onClick={() => setSuccess(false)}
-                  >
+                  <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={() => setSuccess(false)}>
                     Send Another Message
                   </button>
                 </div>
@@ -234,74 +179,58 @@ export default function Contact() {
                 <form onSubmit={handleSubmit} noValidate>
                   <h3 style={{ marginBottom: 24 }}>Send Us a Message</h3>
 
-                  {/* Name & Email row */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+                  {/* Name & Email — .contact-form-row from global.css */}
+                  <div className="contact-form-row">
                     <div>
-                      <label htmlFor="contact-name" style={labelStyle}>
+                      <label htmlFor="c-name" style={labelStyle}>
                         Full Name <span style={{ color: "var(--danger)" }}>*</span>
                       </label>
                       <input
-                        id="contact-name"
-                        name="name"
-                        type="text"
-                        value={form.name}
-                        onChange={handleChange}
-                        placeholder="Your full name"
-                        style={inputStyle("name")}
+                        id="c-name" name="name" type="text"
+                        value={form.name} onChange={handleChange}
+                        placeholder="Your full name" style={inputStyle("name")}
                         onFocus={(e) => (e.target.style.borderColor = "var(--primary)")}
-                        onBlur={(e) => (e.target.style.borderColor = errors.name ? "var(--danger)" : "var(--border)")}
+                        onBlur={(e)  => (e.target.style.borderColor = errors.name ? "var(--danger)" : "var(--border)")}
                       />
                       {errors.name && <div style={errorStyle}>{errors.name}</div>}
                     </div>
                     <div>
-                      <label htmlFor="contact-email" style={labelStyle}>
+                      <label htmlFor="c-email" style={labelStyle}>
                         Email Address <span style={{ color: "var(--danger)" }}>*</span>
                       </label>
                       <input
-                        id="contact-email"
-                        name="email"
-                        type="email"
-                        value={form.email}
-                        onChange={handleChange}
-                        placeholder="your@email.com"
-                        style={inputStyle("email")}
+                        id="c-email" name="email" type="email"
+                        value={form.email} onChange={handleChange}
+                        placeholder="your@email.com" style={inputStyle("email")}
                         onFocus={(e) => (e.target.style.borderColor = "var(--primary)")}
-                        onBlur={(e) => (e.target.style.borderColor = errors.email ? "var(--danger)" : "var(--border)")}
+                        onBlur={(e)  => (e.target.style.borderColor = errors.email ? "var(--danger)" : "var(--border)")}
                       />
                       {errors.email && <div style={errorStyle}>{errors.email}</div>}
                     </div>
                   </div>
 
-                  {/* Phone & Subject row */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+                  {/* Phone & Subject */}
+                  <div className="contact-form-row">
                     <div>
-                      <label htmlFor="contact-phone" style={labelStyle}>Phone (Optional)</label>
+                      <label htmlFor="c-phone" style={labelStyle}>Phone (Optional)</label>
                       <input
-                        id="contact-phone"
-                        name="phone"
-                        type="tel"
-                        value={form.phone}
-                        onChange={handleChange}
-                        placeholder="+91 XXXXX XXXXX"
-                        style={inputStyle("phone")}
+                        id="c-phone" name="phone" type="tel"
+                        value={form.phone} onChange={handleChange}
+                        placeholder="+91 XXXXX XXXXX" style={inputStyle("phone")}
                         onFocus={(e) => (e.target.style.borderColor = "var(--primary)")}
-                        onBlur={(e) => (e.target.style.borderColor = "var(--border)")}
+                        onBlur={(e)  => (e.target.style.borderColor = "var(--border)")}
                       />
                     </div>
                     <div>
-                      <label htmlFor="contact-subject" style={labelStyle}>
+                      <label htmlFor="c-subject" style={labelStyle}>
                         Subject <span style={{ color: "var(--danger)" }}>*</span>
                       </label>
                       <input
-                        id="contact-subject"
-                        name="subject"
-                        type="text"
-                        value={form.subject}
-                        onChange={handleChange}
-                        placeholder="e.g. Admission enquiry"
-                        style={inputStyle("subject")}
+                        id="c-subject" name="subject" type="text"
+                        value={form.subject} onChange={handleChange}
+                        placeholder="e.g. Admission enquiry" style={inputStyle("subject")}
                         onFocus={(e) => (e.target.style.borderColor = "var(--primary)")}
-                        onBlur={(e) => (e.target.style.borderColor = errors.subject ? "var(--danger)" : "var(--border)")}
+                        onBlur={(e)  => (e.target.style.borderColor = errors.subject ? "var(--danger)" : "var(--border)")}
                       />
                       {errors.subject && <div style={errorStyle}>{errors.subject}</div>}
                     </div>
@@ -309,39 +238,27 @@ export default function Contact() {
 
                   {/* Message */}
                   <div style={{ marginBottom: 20 }}>
-                    <label htmlFor="contact-message" style={labelStyle}>
+                    <label htmlFor="c-message" style={labelStyle}>
                       Message <span style={{ color: "var(--danger)" }}>*</span>
                     </label>
                     <textarea
-                      id="contact-message"
-                      name="message"
-                      rows={5}
-                      value={form.message}
-                      onChange={handleChange}
+                      id="c-message" name="message" rows={5}
+                      value={form.message} onChange={handleChange}
                       placeholder="Write your message here..."
                       style={{ ...inputStyle("message"), resize: "vertical", minHeight: 120 }}
                       onFocus={(e) => (e.target.style.borderColor = "var(--primary)")}
-                      onBlur={(e) => (e.target.style.borderColor = errors.message ? "var(--danger)" : "var(--border)")}
+                      onBlur={(e)  => (e.target.style.borderColor = errors.message ? "var(--danger)" : "var(--border)")}
                     />
                     {errors.message && <div style={errorStyle}>{errors.message}</div>}
                   </div>
 
-                  {/* Server error */}
                   {serverError && (
-                    <div
-                      style={{
-                        padding: "12px 16px",
-                        background: "#FEF2F2",
-                        border: "1px solid #FECACA",
-                        borderRadius: "var(--radius-sm)",
-                        color: "var(--danger)",
-                        fontSize: "0.88rem",
-                        marginBottom: 16,
-                        display: "flex",
-                        gap: 8,
-                        alignItems: "flex-start",
-                      }}
-                    >
+                    <div style={{
+                      padding: "12px 16px", background: "#FEF2F2",
+                      border: "1px solid #FECACA", borderRadius: "var(--radius-sm)",
+                      color: "var(--danger)", fontSize: "0.88rem",
+                      marginBottom: 16, display: "flex", gap: 8, alignItems: "flex-start",
+                    }}>
                       <i className="bi bi-exclamation-circle-fill" style={{ flexShrink: 0, marginTop: 2 }} />
                       {serverError}
                     </div>
@@ -365,13 +282,6 @@ export default function Contact() {
           </div>
         </div>
       </section>
-
-      {/* Responsive fix for contact grid */}
-      <style>{`
-        @media (max-width: 768px) {
-          .contact-grid { grid-template-columns: 1fr !important; }
-        }
-      `}</style>
     </>
   );
 }

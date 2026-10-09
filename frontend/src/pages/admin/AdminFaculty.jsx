@@ -222,7 +222,7 @@ function FacultyModal({ faculty, onClose, onSaved, onPhotoUpload, addToast }) {
         </div>
         <form onSubmit={handleSave}>
           <div className="modal-body" style={{ maxHeight: "65vh", overflowY: "auto" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
+            <div className="modal-form-grid">
               {/* Name */}
               <div style={{ ...groupStyle, gridColumn: "1/-1" }}>
                 <label style={labelStyle}>
@@ -323,7 +323,7 @@ function FacultyModal({ faculty, onClose, onSaved, onPhotoUpload, addToast }) {
               {/* Social Links */}
               <div style={{ ...groupStyle, gridColumn: "1/-1" }}>
                 <label style={{ ...labelStyle, marginBottom: 8 }}>Social Links</label>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 16px" }}>
+                <div className="modal-form-grid" style={{ gap: "8px 16px" }}>
                   {[
                     { key: "facebook", icon: "bi-facebook", placeholder: "Facebook URL" },
                     { key: "instagram", icon: "bi-instagram", placeholder: "Instagram URL" },
@@ -620,6 +620,7 @@ export default function AdminFaculty() {
             background: "var(--bg-white)",
             padding: "0 12px",
             maxWidth: 320,
+            width: "100%",
           }}
         >
           <i className="bi bi-search" style={{ color: "var(--text-muted)", marginRight: 8 }} />
@@ -655,6 +656,7 @@ export default function AdminFaculty() {
             boxShadow: "var(--shadow-sm)",
           }}
         >
+          <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead style={{ background: "var(--bg-section)" }}>
               <tr>
@@ -745,6 +747,7 @@ export default function AdminFaculty() {
               )}
             </tbody>
           </table>
+          </div>
           {filtered.length > 0 && (
             <div
               style={{

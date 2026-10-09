@@ -473,7 +473,7 @@ export default function AdminMessages() {
             {/* Modal body */}
             <div style={{ padding: "24px" }}>
               {/* Sender info */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px 24px", marginBottom: 20 }}>
+              <div className="modal-form-grid" style={{ gap: "14px 24px", marginBottom: 20 }}>
                 {[
                   { label: "Name",    value: selectedItem.name },
                   { label: "Email",   value: selectedItem.email },

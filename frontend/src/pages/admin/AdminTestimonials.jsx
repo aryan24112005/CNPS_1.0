@@ -228,7 +228,7 @@ const TestimonialModal = ({ initial, onClose, onSaved, showToast }) => {
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+          <div className="modal-form-grid" style={{ gap: 16, marginBottom: 16 }}>
             <div>
               <label style={labelStyle}>Name <span style={{ color: "var(--danger)" }}>*</span></label>
               <input value={form.name} onChange={set("name")} placeholder="e.g. John Smith" required style={inputStyle} />
@@ -251,7 +251,7 @@ const TestimonialModal = ({ initial, onClose, onSaved, showToast }) => {
             />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+          <div className="modal-form-grid" style={{ gap: 16, marginBottom: 20 }}>
             <div>
               <label style={labelStyle}>Rating</label>
               <StarSelector value={form.rating} onChange={(v) => setForm(f => ({ ...f, rating: v }))} />

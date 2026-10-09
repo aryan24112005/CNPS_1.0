@@ -384,7 +384,7 @@ function EventModal({ event, onClose, onSaved, addToast }) {
               <input style={inputStyle} value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="Event title" required />
             </div>
             {/* Date & Location */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
+            <div className="modal-form-grid">
               <div style={groupStyle}>
                 <label style={labelStyle}>Event Date</label>
                 <input type="date" style={inputStyle} value={form.date} onChange={(e) => set("date", e.target.value)} />
@@ -599,7 +599,7 @@ export default function AdminEvents() {
 
       {/* Search */}
       <div style={{ marginBottom: 18 }}>
-        <div style={{ display: "flex", alignItems: "center", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", background: "var(--bg-white)", padding: "0 12px", maxWidth: 320 }}>
+        <div style={{ display: "flex", alignItems: "center", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", background: "var(--bg-white)", padding: "0 12px", maxWidth: 320, width: "100%" }}>
           <i className="bi bi-search" style={{ color: "var(--text-muted)", marginRight: 8 }} />
           <input
             style={{ border: "none", outline: "none", padding: "9px 0", fontSize: "0.9rem", background: "transparent", width: "100%", color: "var(--text-main)" }}
@@ -615,6 +615,7 @@ export default function AdminEvents() {
         <div className="loading-state"><div className="spinner" /></div>
       ) : (
         <div style={{ background: "var(--bg-white)", borderRadius: "var(--radius-lg)", border: "1px solid var(--border)", overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
+          <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead style={{ background: "var(--bg-section)" }}>
               <tr>
@@ -689,6 +690,7 @@ export default function AdminEvents() {
               )}
             </tbody>
           </table>
+          </div>
           {filtered.length > 0 && (
             <div style={{ padding: "10px 16px", borderTop: "1px solid var(--border)", fontSize: "0.82rem", color: "var(--text-muted)" }}>
               {filtered.length} of {events.length} event{events.length !== 1 ? "s" : ""}

@@ -479,7 +479,7 @@ export default function AdminNotices() {
 
       {/* Search */}
       <div style={{ marginBottom: 18 }}>
-        <div style={{ display: "flex", alignItems: "center", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", background: "var(--bg-white)", padding: "0 12px", maxWidth: 320 }}>
+        <div style={{ display: "flex", alignItems: "center", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", background: "var(--bg-white)", padding: "0 12px", maxWidth: 320, width: "100%" }}>
           <i className="bi bi-search" style={{ color: "var(--text-muted)", marginRight: 8 }} />
           <input
             style={{ border: "none", outline: "none", padding: "9px 0", fontSize: "0.9rem", background: "transparent", width: "100%", color: "var(--text-main)" }}
@@ -495,6 +495,7 @@ export default function AdminNotices() {
         <div className="loading-state"><div className="spinner" /></div>
       ) : (
         <div style={{ background: "var(--bg-white)", borderRadius: "var(--radius-lg)", border: "1px solid var(--border)", overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
+          <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead style={{ background: "var(--bg-section)" }}>
               <tr>
@@ -574,6 +575,7 @@ export default function AdminNotices() {
               )}
             </tbody>
           </table>
+          </div>
           {filtered.length > 0 && (
             <div style={{ padding: "10px 16px", borderTop: "1px solid var(--border)", fontSize: "0.82rem", color: "var(--text-muted)" }}>
               {filtered.length} of {notices.length} notice{notices.length !== 1 ? "s" : ""}

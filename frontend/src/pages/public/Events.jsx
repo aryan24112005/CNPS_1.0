@@ -22,7 +22,9 @@ export default function Events() {
           <h1>School Events</h1>
           <p>Stay updated with all events, activities and celebrations at CNPS.</p>
           <div className="page-breadcrumb">
-            <a href="/">Home</a><i className="bi bi-chevron-right" /><span style={{ color: "#fff" }}>Events</span>
+            <a href="/">Home</a>
+            <i className="bi bi-chevron-right" />
+            <span style={{ color: "#fff" }}>Events</span>
           </div>
         </div>
       </section>
@@ -38,13 +40,17 @@ export default function Events() {
               <p>Check back soon for upcoming events.</p>
             </div>
           ) : (
+            /* grid-3 collapses: 3-col → 2-col (≤900px) → 1-col (≤640px) via global.css */
             <div className="grid grid-3">
               {events.map((e) => (
                 <div key={e._id} className="card">
                   {e.coverImage?.url ? (
                     <img className="card-img" src={e.coverImage.url} alt={e.title} />
                   ) : (
-                    <div className="card-img" style={{ background: "var(--bg-soft-blue)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div className="card-img" style={{
+                      background: "var(--bg-soft-blue)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
                       <i className="bi bi-calendar-event" style={{ fontSize: "3rem", color: "var(--primary-light)" }} />
                     </div>
                   )}
@@ -55,8 +61,16 @@ export default function Events() {
                       </span>
                     )}
                     <h4 style={{ marginBottom: 8 }}>{e.title}</h4>
-                    {e.location && <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", marginBottom: 8 }}><i className="bi bi-geo-alt" /> {e.location}</p>}
-                    <p style={{ fontSize: "0.88rem", marginBottom: 16, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                    {e.location && (
+                      <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", marginBottom: 8 }}>
+                        <i className="bi bi-geo-alt" /> {e.location}
+                      </p>
+                    )}
+                    <p style={{
+                      fontSize: "0.88rem", marginBottom: 16,
+                      display: "-webkit-box", WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical", overflow: "hidden",
+                    }}>
                       {e.description}
                     </p>
                     <Link to={`/events/${e.slug || e._id}`} className="btn btn-outline btn-sm">

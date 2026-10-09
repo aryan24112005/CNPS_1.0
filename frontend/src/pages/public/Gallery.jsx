@@ -1,23 +1,131 @@
 import { useEffect, useState } from "react";
 import { getPublicGallery } from "../../services/publicService";
 
+/* ── Lightbox ─────────────────────────────────────────────── */
+function Lightbox({ images, index, onClose, onPrev, onNext }) {
+  const img = images[index];
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Photo lightbox"
+      style={{
+        position: "fixed", inset: 0,
+        background: "rgba(0,0,0,0.93)",
+        zIndex: 9999,
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}
+      onClick={onClose}
+    >
+      {/* Close */}
+      <button
+        onClick={onClose}
+        aria-label="Close lightbox"
+        style={{
+          position: "absolute", top: 16, right: 16,
+          background: "rgba(255,255,255,0.15)", border: "none",
+          color: "#fff", fontSize: "1.3rem",
+          width: 44, height: 44, minWidth: 44,
+          borderRadius: "50%", cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 1,
+        }}
+      >
+        <i className="bi bi-x-lg" />
+      </button>
+
+      {/* Prev */}
+      {images.length > 1 && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onPrev(); }}
+          aria-label="Previous image"
+          style={{
+            position: "absolute", left: 8,
+            background: "rgba(255,255,255,0.15)", border: "none",
+            color: "#fff", fontSize: "1.3rem",
+            width: 44, height: 44, minWidth: 44,
+            borderRadius: "50%", cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+        >
+          <i className="bi bi-chevron-left" />
+        </button>
+      )}
+
+      {/* Image */}
+      <img
+        src={img.url}
+        alt={img.caption || "Gallery image"}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          maxWidth: "calc(100vw - 96px)",
+          maxHeight: "80vh",
+          objectFit: "contain",
+          borderRadius: "var(--radius-md)",
+          boxShadow: "0 8px 48px rgba(0,0,0,0.6)",
+        }}
+      />
+
+      {/* Next */}
+      {images.length > 1 && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onNext(); }}
+          aria-label="Next image"
+          style={{
+            position: "absolute", right: 8,
+            background: "rgba(255,255,255,0.15)", border: "none",
+            color: "#fff", fontSize: "1.3rem",
+            width: 44, height: 44, minWidth: 44,
+            borderRadius: "50%", cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+        >
+          <i className="bi bi-chevron-right" />
+        </button>
+      )}
+
+      {/* Caption & counter */}
+      <div style={{
+        position: "absolute", bottom: 16, left: "50%",
+        transform: "translateX(-50%)",
+        textAlign: "center", color: "rgba(255,255,255,0.8)",
+        fontSize: "0.88rem", width: "100%",
+        padding: "0 60px",
+        pointerEvents: "none",
+      }}>
+        {img.caption && (
+          <p style={{ margin: "0 0 4px", color: "rgba(255,255,255,0.9)" }}>{img.caption}</p>
+        )}
+        <span style={{
+          fontSize: "0.78rem", opacity: 0.65,
+          background: "rgba(0,0,0,0.4)",
+          padding: "2px 10px", borderRadius: 999,
+        }}>
+          {index + 1} / {images.length}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default function Gallery() {
-  const [albums, setAlbums] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [expandedAlbum, setExpandedAlbum] = useState(null); // slug of expanded album
-  const [lightbox, setLightbox] = useState(null); // { images, index }
+  const [albums, setAlbums]               = useState([]);
+  const [loading, setLoading]             = useState(true);
+  const [expandedAlbum, setExpandedAlbum] = useState(null);
+  const [lightbox, setLightbox]           = useState(null); // { images, index }
 
   useEffect(() => {
     getPublicGallery().then(setAlbums).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  // Close lightbox on Escape key
+  /* Keyboard navigation */
   useEffect(() => {
     if (!lightbox) return;
+    const len = lightbox.images.length;
     const handler = (e) => {
-      if (e.key === "Escape") setLightbox(null);
-      if (e.key === "ArrowRight") setLightbox((lb) => lb && ({ ...lb, index: (lb.index + 1) % lb.images.length }));
-      if (e.key === "ArrowLeft") setLightbox((lb) => lb && ({ ...lb, index: (lb.index - 1 + lb.images.length) % lb.images.length }));
+      if (e.key === "Escape")     setLightbox(null);
+      if (e.key === "ArrowRight") setLightbox((lb) => lb && ({ ...lb, index: (lb.index + 1) % len }));
+      if (e.key === "ArrowLeft")  setLightbox((lb) => lb && ({ ...lb, index: (lb.index - 1 + len) % len }));
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -28,9 +136,7 @@ export default function Gallery() {
     setLightbox(null);
   };
 
-  const openLightbox = (images, index) => {
-    setLightbox({ images, index });
-  };
+  const openLightbox = (images, index) => setLightbox({ images, index });
 
   return (
     <>
@@ -49,9 +155,7 @@ export default function Gallery() {
       <section className="section">
         <div className="container">
           {loading ? (
-            <div className="loading-state">
-              <div className="spinner" />
-            </div>
+            <div className="loading-state"><div className="spinner" /></div>
           ) : albums.length === 0 ? (
             <div className="empty-state">
               <i className="bi bi-images" />
@@ -60,7 +164,7 @@ export default function Gallery() {
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
-              {/* Album grid */}
+              {/* Album cards grid */}
               <div className="grid grid-3">
                 {albums.map((album) => {
                   const isExpanded = expandedAlbum === (album.slug || album._id);
@@ -75,8 +179,12 @@ export default function Gallery() {
                         transition: "var(--transition)",
                       }}
                       onClick={() => toggleAlbum(album.slug || album._id)}
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={isExpanded}
+                      aria-label={`${album.title} album`}
+                      onKeyDown={(e) => e.key === "Enter" && toggleAlbum(album.slug || album._id)}
                     >
-                      {/* Cover image */}
                       {album.coverImage?.url ? (
                         <img
                           className="card-img"
@@ -85,44 +193,26 @@ export default function Gallery() {
                           style={{ objectFit: "cover", height: 200 }}
                         />
                       ) : (
-                        <div
-                          className="card-img"
-                          style={{
-                            height: 200,
-                            background: "var(--bg-soft-blue)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
+                        <div className="card-img" style={{
+                          height: 200, background: "var(--bg-soft-blue)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}>
                           <i className="bi bi-image" style={{ fontSize: "3rem", color: "var(--primary-light)" }} />
                         </div>
                       )}
-
                       <div className="card-body">
-                        {/* Category badge */}
                         {album.category && (
-                          <span
-                            style={{
-                              display: "inline-block",
-                              background: "var(--bg-soft-blue)",
-                              color: "var(--primary)",
-                              fontSize: "0.75rem",
-                              fontWeight: 600,
-                              padding: "3px 10px",
-                              borderRadius: "var(--radius-pill)",
-                              marginBottom: 8,
-                              textTransform: "uppercase",
-                              letterSpacing: "0.5px",
-                            }}
-                          >
+                          <span style={{
+                            display: "inline-block", background: "var(--bg-soft-blue)",
+                            color: "var(--primary)", fontSize: "0.75rem", fontWeight: 600,
+                            padding: "3px 10px", borderRadius: "var(--radius-pill)",
+                            marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px",
+                          }}>
                             {album.category}
                           </span>
                         )}
-
                         <h4 style={{ margin: "0 0 6px", fontSize: "1rem" }}>{album.title}</h4>
-
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
                           <span style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>
                             <i className="bi bi-images" />{" "}
                             {album.images?.length || 0} photo{(album.images?.length || 0) !== 1 ? "s" : ""}
@@ -146,92 +236,51 @@ export default function Gallery() {
                 const album = albums.find((a) => (a.slug || a._id) === expandedAlbum);
                 if (!album || !album.images?.length) return null;
                 return (
-                  <div
-                    style={{
-                      background: "var(--bg-section)",
-                      borderRadius: "var(--radius-lg)",
-                      padding: "32px",
-                      border: "1px solid var(--border)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        marginBottom: 20,
-                      }}
-                    >
+                  <div className="gallery-expanded-section">
+                    <div style={{
+                      display: "flex", alignItems: "center",
+                      justifyContent: "space-between",
+                      marginBottom: 20, flexWrap: "wrap", gap: 8,
+                    }}>
                       <h3 style={{ margin: 0 }}>
                         <i className="bi bi-images" style={{ color: "var(--primary)", marginRight: 8 }} />
                         {album.title}
                       </h3>
                       <button
                         onClick={() => setExpandedAlbum(null)}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          fontSize: "1.4rem",
-                          color: "var(--text-muted)",
-                          display: "flex",
-                          alignItems: "center",
-                        }}
                         aria-label="Close album"
+                        style={{
+                          background: "none", border: "none", cursor: "pointer",
+                          fontSize: "1.4rem", color: "var(--text-muted)",
+                          display: "flex", alignItems: "center", padding: 4,
+                          minWidth: 36, minHeight: 36,
+                        }}
                       >
                         <i className="bi bi-x-lg" />
                       </button>
                     </div>
-
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-                        gap: 12,
-                      }}
-                    >
+                    {/* .gallery-photo-grid defined in global.css — responsive minmax */}
+                    <div className="gallery-photo-grid">
                       {album.images.map((img, idx) => (
                         <div
                           key={img._id || idx}
                           onClick={() => openLightbox(album.images, idx)}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`View photo ${idx + 1}`}
+                          onKeyDown={(e) => e.key === "Enter" && openLightbox(album.images, idx)}
                           style={{
-                            aspectRatio: "1",
-                            overflow: "hidden",
-                            borderRadius: "var(--radius-md)",
-                            cursor: "pointer",
-                            position: "relative",
+                            aspectRatio: "1", overflow: "hidden",
+                            borderRadius: "var(--radius-md)", cursor: "pointer", position: "relative",
                           }}
                         >
                           <img
                             src={img.url}
                             alt={img.caption || `Photo ${idx + 1}`}
-                            style={{
-                              width: "100%",
-                              height: "100%",
-                              objectFit: "cover",
-                              transition: "transform 0.3s ease",
-                            }}
+                            style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.3s ease" }}
                             onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.06)")}
-                            onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                            onMouseOut={(e)  => (e.currentTarget.style.transform = "scale(1)")}
                           />
-                          <div
-                            style={{
-                              position: "absolute",
-                              inset: 0,
-                              background: "rgba(16,42,67,0)",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              transition: "background 0.25s",
-                            }}
-                            onMouseOver={(e) => (e.currentTarget.style.background = "rgba(16,42,67,0.35)")}
-                            onMouseOut={(e) => (e.currentTarget.style.background = "rgba(16,42,67,0)")}
-                          >
-                            <i
-                              className="bi bi-zoom-in"
-                              style={{ fontSize: "1.6rem", color: "#fff", opacity: 0 }}
-                            />
-                          </div>
                         </div>
                       ))}
                     </div>
@@ -243,136 +292,15 @@ export default function Gallery() {
         </div>
       </section>
 
-      {/* Lightbox overlay */}
+      {/* Lightbox */}
       {lightbox && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.92)",
-            zIndex: 9999,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-          onClick={() => setLightbox(null)}
-        >
-          {/* Close */}
-          <button
-            onClick={() => setLightbox(null)}
-            aria-label="Close lightbox"
-            style={{
-              position: "absolute",
-              top: 20,
-              right: 24,
-              background: "rgba(255,255,255,0.12)",
-              border: "none",
-              color: "#fff",
-              fontSize: "1.6rem",
-              width: 44,
-              height: 44,
-              borderRadius: "50%",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <i className="bi bi-x-lg" />
-          </button>
-
-          {/* Prev */}
-          {lightbox.images.length > 1 && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setLightbox((lb) => ({ ...lb, index: (lb.index - 1 + lb.images.length) % lb.images.length }));
-              }}
-              aria-label="Previous image"
-              style={{
-                position: "absolute",
-                left: 16,
-                background: "rgba(255,255,255,0.12)",
-                border: "none",
-                color: "#fff",
-                fontSize: "1.6rem",
-                width: 48,
-                height: 48,
-                borderRadius: "50%",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <i className="bi bi-chevron-left" />
-            </button>
-          )}
-
-          {/* Image */}
-          <img
-            src={lightbox.images[lightbox.index].url}
-            alt={lightbox.images[lightbox.index].caption || "Gallery image"}
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              maxWidth: "88vw",
-              maxHeight: "85vh",
-              objectFit: "contain",
-              borderRadius: "var(--radius-md)",
-              boxShadow: "0 8px 48px rgba(0,0,0,0.6)",
-            }}
-          />
-
-          {/* Next */}
-          {lightbox.images.length > 1 && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setLightbox((lb) => ({ ...lb, index: (lb.index + 1) % lb.images.length }));
-              }}
-              aria-label="Next image"
-              style={{
-                position: "absolute",
-                right: 16,
-                background: "rgba(255,255,255,0.12)",
-                border: "none",
-                color: "#fff",
-                fontSize: "1.6rem",
-                width: 48,
-                height: 48,
-                borderRadius: "50%",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <i className="bi bi-chevron-right" />
-            </button>
-          )}
-
-          {/* Caption & counter */}
-          <div
-            style={{
-              position: "absolute",
-              bottom: 24,
-              left: "50%",
-              transform: "translateX(-50%)",
-              textAlign: "center",
-              color: "rgba(255,255,255,0.8)",
-              fontSize: "0.88rem",
-            }}
-          >
-            {lightbox.images[lightbox.index].caption && (
-              <p style={{ margin: "0 0 4px", color: "rgba(255,255,255,0.9)" }}>
-                {lightbox.images[lightbox.index].caption}
-              </p>
-            )}
-            <span style={{ fontSize: "0.78rem", opacity: 0.6 }}>
-              {lightbox.index + 1} / {lightbox.images.length}
-            </span>
-          </div>
-        </div>
+        <Lightbox
+          images={lightbox.images}
+          index={lightbox.index}
+          onClose={() => setLightbox(null)}
+          onPrev={() => setLightbox((lb) => ({ ...lb, index: (lb.index - 1 + lb.images.length) % lb.images.length }))}
+          onNext={() => setLightbox((lb) => ({ ...lb, index: (lb.index + 1) % lb.images.length }))}
+        />
       )}
     </>
   );
