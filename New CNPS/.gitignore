@@ -1,2 +1,5 @@
-Backend/.env
+# Environment secrets
+.env
+.env.*
+!.env.example
 Frontend/.env
