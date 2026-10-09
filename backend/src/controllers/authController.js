@@ -97,7 +97,7 @@ const forgotPassword = async (req, res) => {
 
     const admin = await Admin.findOne({ email: email.toLowerCase().trim() });
 
-    // Always return 200 — don't reveal whether the email exists
+    // Always return 200 for unknown emails — don't reveal whether the email exists
     if (!admin) {
       return res.json({
         success: true,
@@ -110,34 +110,66 @@ const forgotPassword = async (req, res) => {
     const hashed    = crypto.createHash("sha256").update(rawToken).digest("hex");
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
-    admin.resetPasswordToken   = hashed;
-    admin.resetPasswordExpires = expiresAt;
-    await admin.save({ validateBeforeSave: false });
+    // Use findByIdAndUpdate to avoid select:false field issues on save()
+    await Admin.findByIdAndUpdate(admin._id, {
+      resetPasswordToken:   hashed,
+      resetPasswordExpires: expiresAt,
+    });
 
-    const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").split(",")[0].trim();
-    const resetUrl    = `${frontendUrl}/login?resetToken=${rawToken}`;
+    // Build the reset URL — always use the configured FRONTEND_URL, never fallback to localhost in production
+    const rawFrontendUrl = process.env.FRONTEND_URL || "";
+    const frontendUrl    = rawFrontendUrl.split(",")[0].trim() ||
+      (process.env.NODE_ENV === "production"
+        ? "https://cnpspublicschool.netlify.app"
+        : "http://localhost:5173");
+    const resetUrl = `${frontendUrl}/login?resetToken=${rawToken}`;
+
+    const isDev = process.env.NODE_ENV !== "production";
 
     // ── Try to send email if SMTP is configured ───────────────
+    // Reads SMTP_FROM_NAME / SMTP_FROM_EMAIL from .env (the actual variable names in .env)
+    const smtpUser = (process.env.SMTP_USER || "").trim();
+    const smtpPass = (process.env.SMTP_PASS || "").replace(/\s+/g, ""); // strip spaces from app password
     const smtpConfigured =
       process.env.SMTP_HOST &&
-      process.env.SMTP_USER &&
-      process.env.SMTP_PASS &&
-      process.env.SMTP_USER !== "your@gmail.com";
+      smtpUser &&
+      smtpPass &&
+      smtpUser !== "your@gmail.com";
+
+    console.log("[ForgotPassword] SMTP configured:", smtpConfigured, "| host:", process.env.SMTP_HOST, "| user:", smtpUser ? "SET" : "MISSING");
 
     if (smtpConfigured) {
-      try {
-        const transporter = nodemailer.createTransport({
-          host:   process.env.SMTP_HOST,
-          port:   Number(process.env.SMTP_PORT) || 587,
-          secure: Number(process.env.SMTP_PORT) === 465,
-          auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
-          },
-        });
+      const transporter = nodemailer.createTransport({
+        host:   process.env.SMTP_HOST,
+        port:   Number(process.env.SMTP_PORT) || 587,
+        secure: Number(process.env.SMTP_PORT) === 465,
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+      });
 
-        await transporter.sendMail({
-          from:    `"${process.env.EMAIL_FROM_NAME || "CNPS School"}" <${process.env.EMAIL_FROM_ADDRESS || process.env.SMTP_USER}>`,
+      // Verify transport connectivity before attempting send
+      try {
+        await transporter.verify();
+        console.log("[ForgotPassword] SMTP transporter verified OK");
+      } catch (verifyErr) {
+        console.error("[ForgotPassword] SMTP verify failed — code:", verifyErr.code, "| response:", verifyErr.response, "| message:", verifyErr.message);
+        // Do NOT return false success — fall through to the real error response below
+        return res.status(500).json({
+          success: false,
+          message: "Email service is currently unavailable. Please try again later or contact support.",
+          ...(isDev && { debug: `SMTP verify: ${verifyErr.message}` }),
+        });
+      }
+
+      // Prefer SMTP_FROM_NAME/SMTP_FROM_EMAIL (actual .env names), fall back to EMAIL_FROM_NAME/EMAIL_FROM_ADDRESS
+      const fromName    = (process.env.SMTP_FROM_NAME    || process.env.EMAIL_FROM_NAME    || "CNPS School").trim();
+      const fromAddress = (process.env.SMTP_FROM_EMAIL   || process.env.EMAIL_FROM_ADDRESS || smtpUser).trim();
+
+      try {
+        const info = await transporter.sendMail({
+          from:    `"${fromName}" <${fromAddress}>`,
           to:      admin.email,
           subject: "Password Reset Request — CNPS Admin Portal",
           html: `
@@ -173,28 +205,42 @@ const forgotPassword = async (req, res) => {
           `,
         });
 
+        console.log("[ForgotPassword] Email accepted by server — messageId:", info.messageId, "| accepted:", info.accepted?.length, "| rejected:", info.rejected?.length);
+
         return res.json({
           success: true,
           message: "A password reset link has been sent to your email address.",
         });
       } catch (mailErr) {
-        console.error("[ForgotPassword] Email send failed:", mailErr.message);
-        // Fall through to dev mode response
+        // Log the full error so Render logs show the real cause
+        console.error("[ForgotPassword] sendMail failed — code:", mailErr.code, "| response:", mailErr.response, "| message:", mailErr.message);
+        return res.status(500).json({
+          success: false,
+          message: "Failed to send reset email. Please try again later or contact support.",
+          ...(isDev && { debug: `sendMail: ${mailErr.message}` }),
+        });
       }
     }
 
-    // ── Dev mode — return token directly (no email configured) ─
-    const isDev = process.env.NODE_ENV !== "production";
+    // ── SMTP not configured — dev mode only ──────────────────
+    if (!isDev) {
+      // Production with no SMTP: log clearly and return a non-misleading error
+      console.error("[ForgotPassword] SMTP not configured in production. Set SMTP_HOST, SMTP_USER, SMTP_PASS on Render.");
+      return res.status(500).json({
+        success: false,
+        message: "Email service is not configured. Please contact the site administrator.",
+      });
+    }
+
+    // Dev mode — return token directly so local testing works without SMTP
     return res.json({
       success: true,
-      message: isDev
-        ? "SMTP not configured. Use the reset token below (dev mode only)."
-        : "If that email is registered, a reset link has been sent.",
-      // Only expose the raw token in development
-      ...(isDev && { resetToken: rawToken, resetUrl }),
+      message: "SMTP not configured. Use the reset token below (dev mode only).",
+      resetToken: rawToken,
+      resetUrl,
     });
   } catch (err) {
-    console.error("Forgot password error:", err);
+    console.error("[ForgotPassword] Unexpected error:", err);
     return res.status(500).json({ success: false, message: "Failed to process request. Please try again." });
   }
 };
