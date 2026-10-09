@@ -961,6 +961,11 @@ tbody td { padding: 13px 16px; color: var(--text-secondary); vertical-align: mid
 }
 
 /* ── Public Navbar ──────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   PUBLIC NAVBAR
+   Hamburger activates at ≤1100px so that all 8 nav links +
+   brand + CTA always have enough room on wider viewports.
+   ═══════════════════════════════════════════════════════════ */
 .navbar {
   background: var(--bg-white);
   border-bottom: 1px solid var(--border);
@@ -968,32 +973,46 @@ tbody td { padding: 13px 16px; color: var(--text-secondary); vertical-align: mid
   top: 0;
   z-index: 500;
   box-shadow: var(--shadow-sm);
+  /* Prevent the bar itself from becoming a source of overflow */
+  overflow: hidden;
 }
+
 .navbar-inner {
   display: flex;
   align-items: center;
-  height: 70px;
-  gap: 24px;
+  height: 68px;
+  gap: 16px;
   max-width: 1600px;
-  margin-left: auto;
-  margin-right: auto;
-  padding-left: 2rem;
-  padding-right: 2rem;
+  margin: 0 auto;
+  padding: 0 2rem;
   width: 100%;
+  /* Let children negotiate space; nothing overflows the row */
+  box-sizing: border-box;
+  overflow: hidden;
 }
+
+/* ── Brand ── */
 .navbar-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   text-decoration: none;
-  flex-shrink: 0;
-  /* Don't let brand overflow */
+  /* CAN shrink but only down to its minimum content width */
+  flex-shrink: 1;
+  flex-grow: 0;
   min-width: 0;
+  /* Hard floor so the logo icon is always visible */
+  min-width: 42px;
 }
+
 .navbar-brand-icon {
-  width: 42px; height: 42px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-md);
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Never let the icon shrink away */
   flex-shrink: 0;
   overflow: hidden;
 }
@@ -1003,37 +1022,52 @@ tbody td { padding: 13px 16px; color: var(--text-secondary); vertical-align: mid
   object-fit: contain;
   display: block;
 }
+
 .navbar-brand-text {
+  /* Clip text instead of overflowing */
   min-width: 0;
+  overflow: hidden;
 }
 .navbar-brand-name {
   font-family: var(--font-heading);
-  font-size: 1.1rem;
+  font-size: clamp(0.85rem, 1.5vw, 1.05rem);
   font-weight: 800;
   color: var(--navy);
-  line-height: 1.1;
+  line-height: 1.15;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .navbar-brand-name span { color: var(--primary); }
-.navbar-brand-sub { font-size: 0.7rem; color: var(--text-muted); font-weight: 400; letter-spacing: 0.3px; white-space: nowrap; }
+.navbar-brand-sub {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-weight: 400;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
+/* ── Desktop nav links ── */
 .navbar-nav {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 0;
+  /* Push CTA to the right */
   margin-left: auto;
   list-style: none;
-  padding: 0; margin-right: 8px;
-  /* Prevent nav overflow */
-  flex-wrap: nowrap;
+  padding: 0;
+  margin-right: 4px;
+  /* Allow links to shrink together */
+  flex-shrink: 1;
   min-width: 0;
+  flex-wrap: nowrap;
 }
 .navbar-nav a {
   display: block;
-  padding: 7px 14px;
-  font-size: 0.88rem;
+  padding: 6px clamp(6px, 0.9vw, 12px);
+  font-size: clamp(0.78rem, 1vw, 0.88rem);
   font-weight: 500;
   color: var(--text-main);
   border-radius: var(--radius-md);
@@ -1046,74 +1080,148 @@ tbody td { padding: 13px 16px; color: var(--text-secondary); vertical-align: mid
   background: var(--bg-soft-blue);
 }
 
-.navbar-cta { flex-shrink: 0; }
+/* ── Desktop CTA buttons ── */
+.navbar-cta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+/* Keep CTA buttons compact — no text wrapping */
+.navbar-cta .btn {
+  white-space: nowrap;
+  padding: 7px 14px;
+  font-size: 0.82rem;
+}
+
+/* ── Hamburger toggle ── */
 .navbar-toggle {
   display: none;
   background: none;
   border: none;
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   color: var(--navy);
   cursor: pointer;
-  padding: 4px;
+  padding: 0;
+  /* Always push to far-right after brand */
   margin-left: auto;
   flex-shrink: 0;
-  /* Make tap target big enough on mobile */
-  min-width: 40px;
-  min-height: 40px;
+  /* Minimum 44×44 touch target */
+  width: 44px;
+  height: 44px;
   align-items: center;
   justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: background 0.18s;
 }
+.navbar-toggle:hover { background: var(--bg-soft-blue); }
 
+/* ── Mobile fullscreen nav panel ── */
 .mobile-nav {
   display: none;
   position: fixed;
   inset: 0;
-  top: 70px;
+  top: 68px;
   background: var(--bg-white);
   z-index: 490;
-  padding: 20px 16px;
+  padding: 16px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   border-top: 1px solid var(--border);
   flex-direction: column;
   gap: 4px;
-  /* iOS momentum scrolling */
-  -webkit-overflow-scrolling: touch;
+  /* Safe area bottom on notched phones */
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
 }
 .mobile-nav.open { display: flex; }
+
 .mobile-nav a {
-  display: block;
+  display: flex;
+  align-items: center;
   padding: 13px 16px;
   font-size: 1rem;
   font-weight: 500;
   color: var(--text-main);
   border-radius: var(--radius-md);
   border-bottom: 1px solid var(--border-light);
+  text-decoration: none;
+  transition: var(--transition);
 }
-.mobile-nav a:hover, .mobile-nav a.active { background: var(--bg-soft-blue); color: var(--primary); }
-.mobile-nav .btn { margin-top: 12px; width: 100%; justify-content: center; }
+.mobile-nav a:hover,
+.mobile-nav a.active {
+  background: var(--bg-soft-blue);
+  color: var(--primary);
+}
+/* CTA buttons inside mobile nav */
+.mobile-nav .mobile-nav-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 4px;
+}
+.mobile-nav .mobile-nav-cta .btn {
+  width: 100%;
+  justify-content: center;
+}
 
-@media (max-width: 860px) {
-  .navbar-nav { display: none; }
-  .navbar-cta { display: none; }
+/* ════════════════════════════════════════════════════════════
+   BREAKPOINTS
+   1100px  hamburger activates — covers the 860–1100px gap
+            where all 8 links + CTA would overlap
+   768px   intermediate tablet adjustments
+   480px   tighter mobile
+   400px   tiny phones
+   ════════════════════════════════════════════════════════════ */
+
+/* Hide desktop nav & CTA, show hamburger below 1100px */
+@media (max-width: 1100px) {
+  .navbar-nav  { display: none; }
+  .navbar-cta  { display: none; }
   .navbar-toggle { display: flex; }
 }
 
-/* On very small screens, show shorter brand name */
-@media (max-width: 400px) {
-  .navbar-brand-sub { display: none; }
-  .navbar-inner { height: 60px; }
-  .mobile-nav { top: 60px; }
+/* Slightly reduce inner gap and padding on tablet */
+@media (max-width: 768px) {
+  .navbar-inner {
+    height: 62px;
+    padding: 0 1.25rem;
+    gap: 12px;
+  }
+  .mobile-nav { top: 62px; }
 }
 
-/* Mobile nav backdrop — sits below mobile-nav, above page */
-.mobile-nav-backdrop {
-  top: 70px;
-}
-@media (max-width: 400px) {
-  .mobile-nav-backdrop {
-    top: 60px;
+/* Compact for phones */
+@media (max-width: 480px) {
+  .navbar-inner {
+    height: 58px;
+    padding: 0 1rem;
+    gap: 8px;
   }
+  .mobile-nav { top: 58px; }
+  .navbar-brand-icon { width: 36px; height: 36px; }
+  .navbar-brand-name { font-size: 0.9rem; }
 }
+
+/* Tiny phones — hide subtitle, keep icon + name only */
+@media (max-width: 400px) {
+  .navbar-inner {
+    height: 54px;
+    padding: 0 0.875rem;
+  }
+  .mobile-nav  { top: 54px; }
+  .navbar-brand-sub { display: none; }
+  .navbar-brand-icon { width: 34px; height: 34px; }
+  .navbar-brand { gap: 8px; }
+  .navbar-brand-name { font-size: 0.85rem; }
+  .navbar-toggle { width: 40px; height: 40px; font-size: 1.45rem; }
+}
+
+/* ── Mobile nav backdrop ── */
+.mobile-nav-backdrop { top: 68px; }
+@media (max-width: 768px) { .mobile-nav-backdrop { top: 62px; } }
+@media (max-width: 480px) { .mobile-nav-backdrop { top: 58px; } }
+@media (max-width: 400px) { .mobile-nav-backdrop { top: 54px; } }
 
 /* ── Footer ─────────────────────────────────────────────────── */
 .footer {
@@ -1259,18 +1367,15 @@ tbody td { padding: 13px 16px; color: var(--text-secondary); vertical-align: mid
 @media (max-width: 1024px) {
   .container,
   .container-wide { padding-left: 1.5rem; padding-right: 1.5rem; }
-  .navbar-inner   { padding-left: 1.5rem; padding-right: 1.5rem; }
 }
 @media (max-width: 640px) {
   .hide-mobile { display: none !important; }
   .container,
   .container-wide { padding-left: 1rem; padding-right: 1rem; }
-  .navbar-inner   { padding-left: 1rem; padding-right: 1rem; }
 }
 @media (max-width: 480px) {
   .container,
   .container-wide { padding-left: 0.875rem; padding-right: 0.875rem; }
-  .navbar-inner   { padding-left: 0.875rem; padding-right: 0.875rem; }
 }
 
 /* ── Page Hero responsive ─────────────────────────────────── */
