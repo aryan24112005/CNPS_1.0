@@ -220,7 +220,7 @@ function BooksSection({ books, onChange }) {
 
   return (
     <div>
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", gap: 8, marginBottom: 8, alignItems: "end" }}>
+      <div className="book-add-row">
         <div>
           <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: 2 }}>Book Name</div>
           <input style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Mathematics" />
@@ -423,7 +423,7 @@ function CourseModal({ course, onClose, onSaved, addToast }) {
         </div>
         <form onSubmit={handleSave}>
           <div className="modal-body" style={{ maxHeight: "65vh", overflowY: "auto" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
+            <div className="modal-form-grid">
               {/* Title */}
               <div style={{ ...groupStyle, gridColumn: "1/-1" }}>
                 <label style={labelStyle}>
@@ -628,7 +628,7 @@ export default function AdminCourses() {
 
       {/* Search */}
       <div style={{ marginBottom: 18 }}>
-        <div style={{ display: "flex", alignItems: "center", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", background: "var(--bg-white)", padding: "0 12px", maxWidth: 320 }}>
+        <div style={{ display: "flex", alignItems: "center", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", background: "var(--bg-white)", padding: "0 12px", maxWidth: 320, width: "100%" }}>
           <i className="bi bi-search" style={{ color: "var(--text-muted)", marginRight: 8 }} />
           <input
             style={{ border: "none", outline: "none", padding: "9px 0", fontSize: "0.9rem", background: "transparent", width: "100%", color: "var(--text-main)" }}
@@ -644,6 +644,7 @@ export default function AdminCourses() {
         <div className="loading-state"><div className="spinner" /></div>
       ) : (
         <div style={{ background: "var(--bg-white)", borderRadius: "var(--radius-lg)", border: "1px solid var(--border)", overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
+          <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead style={{ background: "var(--bg-section)" }}>
               <tr>
@@ -706,6 +707,7 @@ export default function AdminCourses() {
               )}
             </tbody>
           </table>
+          </div>
           {filtered.length > 0 && (
             <div style={{ padding: "10px 16px", borderTop: "1px solid var(--border)", fontSize: "0.82rem", color: "var(--text-muted)" }}>
               {filtered.length} of {courses.length} course{courses.length !== 1 ? "s" : ""}

@@ -494,7 +494,7 @@ export default function AdminAdmissions() {
             {/* Modal body */}
             <div style={{ padding: "24px" }}>
               {/* Student info grid */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 24px", marginBottom: 24 }}>
+              <div className="modal-form-grid" style={{ gap: "16px 24px", marginBottom: 24 }}>
                 {[
                   { label: "Student Name",  value: selectedItem.studentName },
                   { label: "Class Applied", value: selectedItem.className },

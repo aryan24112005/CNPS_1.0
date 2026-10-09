@@ -5,7 +5,7 @@ import { getPublicCourses } from "../../services/publicService";
 export default function Courses() {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter]   = useState("all");
+  const [filter,  setFilter]  = useState("all");
 
   useEffect(() => {
     getPublicCourses().then(setCourses).catch(() => {}).finally(() => setLoading(false));
@@ -21,18 +21,30 @@ export default function Courses() {
           <h1>Our Courses</h1>
           <p>Comprehensive education from Nursery to Class 12 with specialised streams.</p>
           <div className="page-breadcrumb">
-            <a href="/">Home</a><i className="bi bi-chevron-right" /><span style={{ color: "#fff" }}>Courses</span>
+            <a href="/">Home</a>
+            <i className="bi bi-chevron-right" />
+            <span style={{ color: "#fff" }}>Courses</span>
           </div>
         </div>
       </section>
 
       <section className="section">
         <div className="container">
-          {/* Category filter */}
+          {/* Category filter — flex-wrap keeps buttons from overflowing on small screens */}
           {categories.length > 1 && (
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 36, justifyContent: "center" }}>
+            <div style={{
+              display: "flex",
+              gap: "clamp(6px, 2vw, 10px)",
+              flexWrap: "wrap",
+              marginBottom: 36,
+              justifyContent: "center",
+            }}>
               {categories.map((cat) => (
-                <button key={cat} onClick={() => setFilter(cat)} className={`btn btn-sm ${filter === cat ? "btn-primary" : "btn-outline"}`}>
+                <button
+                  key={cat}
+                  onClick={() => setFilter(cat)}
+                  className={`btn btn-sm ${filter === cat ? "btn-primary" : "btn-outline"}`}
+                >
                   {cat === "all" ? "All Courses" : cat}
                 </button>
               ))}
@@ -54,16 +66,27 @@ export default function Courses() {
                   {c.image?.url ? (
                     <img className="card-img" src={c.image.url} alt={c.title} />
                   ) : (
-                    <div className="card-img" style={{ background: "var(--bg-soft-blue)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div className="card-img" style={{
+                      background: "var(--bg-soft-blue)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
                       <i className="bi bi-book" style={{ fontSize: "3rem", color: "var(--primary-light)" }} />
                     </div>
                   )}
                   <div className="card-body">
                     {c.category  && <span className="badge badge-primary" style={{ marginBottom: 8 }}>{c.category}</span>}
-                    {c.className && <span className="badge badge-navy"    style={{ marginBottom: 8, marginLeft: 6 }}>Class {c.className}</span>}
+                    {c.className && <span className="badge badge-navy" style={{ marginBottom: 8, marginLeft: 6 }}>Class {c.className}</span>}
                     <h4 style={{ marginBottom: 8 }}>{c.title}</h4>
-                    {c.classTeacher && <p style={{ fontSize: "0.82rem", color: "var(--primary)", marginBottom: 6 }}><i className="bi bi-person" /> {c.classTeacher}</p>}
-                    <p style={{ fontSize: "0.88rem", marginBottom: 16, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                    {c.classTeacher && (
+                      <p style={{ fontSize: "0.82rem", color: "var(--primary)", marginBottom: 6 }}>
+                        <i className="bi bi-person" /> {c.classTeacher}
+                      </p>
+                    )}
+                    <p style={{
+                      fontSize: "0.88rem", marginBottom: 16,
+                      display: "-webkit-box", WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical", overflow: "hidden",
+                    }}>
                       {c.shortDescription || c.description || "Comprehensive curriculum designed for excellence."}
                     </p>
                     <Link to={`/courses/${c.slug || c._id}`} className="btn btn-primary btn-sm">

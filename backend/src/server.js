@@ -24,12 +24,22 @@ app.use(helmet({
 }));
 
 // ── CORS ─────────────────────────────────────────────────────
-const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173")
-  .split(",").map((s) => s.trim()).filter(Boolean);
+// FRONTEND_URL accepts a comma-separated list of allowed origins.
+// The production Netlify frontend is always included as a hardcoded safe default.
+// For local dev, set FRONTEND_URL=http://localhost:5173 in backend/.env
+const allowedOrigins = [
+  // Always allow the production Netlify frontend
+  "https://cnpspublicschool.netlify.app",
+  // Also allow any origins configured via environment variable (supports comma-separated list)
+  ...(process.env.FRONTEND_URL || "http://localhost:5173")
+    .split(",").map((s) => s.trim()).filter(Boolean),
+].filter((v, i, arr) => arr.indexOf(v) === i); // deduplicate
 
 app.use(cors({
   origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    // Allow requests with no origin (e.g. curl, server-to-server, Postman)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
     return callback(new Error(`CORS: origin ${origin} not allowed`));
   },
   credentials: true,

@@ -185,7 +185,7 @@ const SlideModal = ({ initial, onClose, onSaved, showToast }) => {
             <label style={labelStyle}>Description</label>
             <textarea value={form.description} onChange={set("description")} rows={3} placeholder="Slide description…" style={{ ...inputStyle, resize: "vertical" }} />
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+          <div className="modal-form-grid" style={{ gap: 14, marginBottom: 14 }}>
             <div>
               <label style={labelStyle}>Button Text</label>
               <input value={form.buttonText} onChange={set("buttonText")} placeholder="e.g. Learn More" style={inputStyle} />
@@ -590,7 +590,7 @@ function HomepageContentTab({ showToast }) {
 
       {/* ── CTA Section ── */}
       <Section title="CTA (Call to Action)" icon="bi-megaphone">
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+        <div className="modal-form-grid" style={{ gap: 14, marginBottom: 14 }}>
           <div>
             <label style={labelStyle}>CTA Heading</label>
             <input value={form.ctaHeading} onChange={set("ctaHeading")} placeholder="e.g. Ready to Enroll?" style={inputStyle} />

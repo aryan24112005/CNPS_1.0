@@ -9,9 +9,9 @@ function fmtDate(d) {
 
 export default function NoticeDetails() {
   const { slug } = useParams();
-  const [notice, setNotice] = useState(null);
+  const [notice, setNotice]   = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [error, setError]     = useState(false);
 
   useEffect(() => {
     getPublicNoticeBySlug(slug)
@@ -46,7 +46,7 @@ export default function NoticeDetails() {
       {/* Hero */}
       <section className="page-hero">
         <div className="container" style={{ position: "relative", zIndex: 1 }}>
-          <h1 style={{ fontSize: "clamp(1.5rem, 3vw, 2.2rem)" }}>{notice.title}</h1>
+          <h1 style={{ fontSize: "clamp(1.4rem, 3vw, 2.2rem)" }}>{notice.title}</h1>
           {notice.date && (
             <p style={{ opacity: 0.85 }}>
               <i className="bi bi-calendar3" /> {fmtDate(notice.date)}
@@ -66,7 +66,6 @@ export default function NoticeDetails() {
       <section className="section">
         <div className="container">
           <div style={{ maxWidth: 800, margin: "0 auto" }}>
-            {/* Back button */}
             <Link
               to="/notices"
               className="btn btn-outline btn-sm"
@@ -75,39 +74,28 @@ export default function NoticeDetails() {
               <i className="bi bi-arrow-left" /> Back to Notices
             </Link>
 
-            {/* Notice card */}
-            <div
-              className="card"
-              style={{ padding: 40 }}
-            >
+            {/*
+              .notice-detail-card has responsive padding defined in global.css:
+              40px desktop → 20px mobile → 16px tiny
+            */}
+            <div className="card notice-detail-card">
               {/* Header row */}
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  alignItems: "center",
-                  gap: 12,
-                  marginBottom: 28,
-                  paddingBottom: 20,
-                  borderBottom: "1px solid var(--border)",
-                }}
-              >
-                <div
-                  style={{
-                    width: 48,
-                    height: 48,
-                    background: "var(--bg-soft-blue)",
-                    borderRadius: "var(--radius-md)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}
-                >
+              <div style={{
+                display: "flex", flexWrap: "wrap",
+                alignItems: "center", gap: 12,
+                marginBottom: 28, paddingBottom: 20,
+                borderBottom: "1px solid var(--border)",
+              }}>
+                <div style={{
+                  width: 48, height: 48, background: "var(--bg-soft-blue)",
+                  borderRadius: "var(--radius-md)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  flexShrink: 0,
+                }}>
                   <i className="bi bi-bell-fill" style={{ fontSize: "1.4rem", color: "var(--primary)" }} />
                 </div>
-                <div>
-                  <h2 style={{ margin: 0, fontSize: "1.4rem" }}>{notice.title}</h2>
+                <div style={{ minWidth: 0 }}>
+                  <h2 style={{ margin: 0, fontSize: "clamp(1.1rem, 3vw, 1.4rem)" }}>{notice.title}</h2>
                   {notice.date && (
                     <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
                       <i className="bi bi-calendar3" /> {fmtDate(notice.date)}
@@ -117,61 +105,39 @@ export default function NoticeDetails() {
               </div>
 
               {/* Full content */}
-              <div
-                style={{
-                  fontSize: "1rem",
-                  color: "var(--text-secondary)",
-                  lineHeight: 1.8,
-                  whiteSpace: "pre-wrap",
-                }}
-              >
+              <div style={{
+                fontSize: "1rem", color: "var(--text-secondary)",
+                lineHeight: 1.8, whiteSpace: "pre-wrap",
+              }}>
                 {notice.content}
               </div>
 
               {/* File attachment */}
               {notice.file?.url && (
-                <div
-                  style={{
-                    marginTop: 32,
-                    padding: "20px 24px",
-                    background: "var(--bg-section)",
-                    borderRadius: "var(--radius-md)",
-                    border: "1px solid var(--border)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 16,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 44,
-                      height: 44,
-                      background: "#FEF3C7",
-                      borderRadius: "var(--radius-sm)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <i
-                      className="bi bi-file-earmark-pdf-fill"
-                      style={{ fontSize: "1.4rem", color: "#D4970A" }}
-                    />
+                <div style={{
+                  marginTop: 32, padding: "16px 20px",
+                  background: "var(--bg-section)",
+                  borderRadius: "var(--radius-md)",
+                  border: "1px solid var(--border)",
+                  display: "flex", alignItems: "center",
+                  flexWrap: "wrap", gap: 16,
+                }}>
+                  <div style={{
+                    width: 44, height: 44, background: "#FEF3C7",
+                    borderRadius: "var(--radius-sm)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    flexShrink: 0,
+                  }}>
+                    <i className="bi bi-file-earmark-pdf-fill" style={{ fontSize: "1.4rem", color: "#D4970A" }} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--navy)", marginBottom: 2 }}>
                       Attachment
                     </div>
-                    <div
-                      style={{
-                        fontSize: "0.8rem",
-                        color: "var(--text-muted)",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
+                    <div style={{
+                      fontSize: "0.8rem", color: "var(--text-muted)",
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    }}>
                       {notice.file.originalName || notice.file.url}
                     </div>
                   </div>
@@ -194,8 +160,7 @@ export default function NoticeDetails() {
                     src={notice.image.url}
                     alt="Notice attachment"
                     style={{
-                      width: "100%",
-                      borderRadius: "var(--radius-md)",
+                      width: "100%", borderRadius: "var(--radius-md)",
                       border: "1px solid var(--border)",
                     }}
                   />

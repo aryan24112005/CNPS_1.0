@@ -426,7 +426,7 @@ export default function AdminSettings() {
             <Field label="School Address">
               <TextAreaInput value={settings.address} onChange={set("address")} placeholder="e.g. 123 School Road, City, State - 400001" rows={3} />
             </Field>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 24px" }}>
+            <div className="modal-form-grid" style={{ gap: "0 24px" }}>
               <Field label="Primary Phone Number"><TextInput value={settings.phone} onChange={set("phone")} placeholder="+91 98765 43210" type="tel" /></Field>
               <Field label="Secondary Phone Number"><TextInput value={settings.phone2} onChange={set("phone2")} placeholder="+91 98765 43211" type="tel" /></Field>
             </div>
@@ -515,7 +515,7 @@ export default function AdminSettings() {
             <Field label="About Us Description">
               <TextAreaInput value={settings.aboutDescription} onChange={set("aboutDescription")} placeholder="School history, philosophy, achievements…" rows={6} />
             </Field>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0 20px" }}>
+            <div className="settings-3col-grid">
               <Field label="Our Mission">
                 <TextAreaInput value={settings.aboutMission} onChange={set("aboutMission")} placeholder="Mission statement…" rows={4} />
               </Field>

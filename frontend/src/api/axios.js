@@ -1,8 +1,14 @@
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+// Centralized API base URL configuration
+// In production: set VITE_API_URL in Netlify to https://cnps-ouwq.onrender.com/api
+// In local dev: set VITE_API_URL in .env to http://localhost:5000/api
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL || 
+  "https://cnps-ouwq.onrender.com"
+).replace(/\/+$/, ""); // Remove trailing slashes
 
-const api = axios.create({ baseURL: API_URL });
+const api = axios.create({ baseURL: API_BASE_URL });
 
 // Attach JWT to every admin request automatically
 api.interceptors.request.use((config) => {
