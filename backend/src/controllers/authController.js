@@ -1,13 +1,7 @@
 "use strict";
-<<<<<<< HEAD
 const crypto       = require("crypto");
 const jwt          = require("jsonwebtoken");
 const Admin        = require("../models/Admin");
-=======
-const crypto      = require("crypto");
-const jwt         = require("jsonwebtoken");
-const Admin       = require("../models/Admin");
->>>>>>> main/A1
 const gmailService = require("../services/gmailService");
 
 // ── POST /api/auth/login ──────────────────────────────────────
@@ -92,17 +86,12 @@ const changePassword = async (req, res) => {
 };
 
 // ── POST /api/auth/forgot-password ────────────────────────────
-<<<<<<< HEAD
 // Generates a 1-hour reset token, stores it hashed, and emails a reset link
 // via the Gmail API over HTTPS (avoids Render's blocked SMTP ports).
 //
 // Reset URL format:  <FRONTEND_URL>/login?resetToken=<rawToken>
 // Frontend reads:    searchParams.get("resetToken")  →  ResetPasswordForm
 // Backend validates: SHA-256(rawToken) matches stored hash, expiry > now
-=======
-// Generates a 1-hour reset token and delivers a reset link via the
-// Gmail API over HTTPS (OAuth 2.0).  No SMTP — avoids Render port blocks.
->>>>>>> main/A1
 const forgotPassword = async (req, res) => {
   const isDev = process.env.NODE_ENV !== "production";
 
@@ -114,11 +103,7 @@ const forgotPassword = async (req, res) => {
 
     const admin = await Admin.findOne({ email: email.toLowerCase().trim() });
 
-<<<<<<< HEAD
     // Always return 200 for unknown addresses — prevents account enumeration.
-=======
-    // Always respond generically for unknown emails — prevents account enumeration.
->>>>>>> main/A1
     if (!admin) {
       return res.json({
         success: true,
@@ -127,25 +112,16 @@ const forgotPassword = async (req, res) => {
     }
 
     // ── 1. Generate a secure reset token ─────────────────────
-<<<<<<< HEAD
     const rawToken  = crypto.randomBytes(32).toString("hex"); // 256-bit
-=======
-    const rawToken  = crypto.randomBytes(32).toString("hex");  // 256-bit random
->>>>>>> main/A1
     const hashed    = crypto.createHash("sha256").update(rawToken).digest("hex");
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);  // 1 hour from now
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
 
-<<<<<<< HEAD
     // Use findByIdAndUpdate to avoid select:false field issues on .save()
-=======
-    // Persist hashed token — use findByIdAndUpdate to bypass select:false issues
->>>>>>> main/A1
     await Admin.findByIdAndUpdate(admin._id, {
       resetPasswordToken:   hashed,
       resetPasswordExpires: expiresAt,
     });
 
-<<<<<<< HEAD
     // ── 2. Build the reset URL ────────────────────────────────
     // FRONTEND_URL on Render = "https://cnpspublicschool.netlify.app"
     // Hard-code the production fallback so a blank env var never generates
@@ -166,43 +142,16 @@ const forgotPassword = async (req, res) => {
         return res.json({
           success:    true,
           message:    "Gmail API not configured (dev mode). Use the token below.",
-=======
-    // ── 2. Build the production reset URL ────────────────────
-    // FRONTEND_URL is "https://cnpspublicschool.netlify.app" on Render.
-    // Hard-code the production fallback so a misconfigured env var never
-    // produces a localhost link in production emails.
-    const rawFrontendUrl = (process.env.FRONTEND_URL || "").split(",")[0].trim();
-    const frontendUrl    = rawFrontendUrl ||
-      (isDev ? "http://localhost:5173" : "https://cnpspublicschool.netlify.app");
-    const resetUrl = `${frontendUrl}/login?resetToken=${rawToken}`;
-
-    // ── 3. Check Gmail API credentials ───────────────────────
-    const missing = gmailService.missingCredentials();
-    if (missing.length > 0) {
-      console.error("[ForgotPassword] Gmail API credentials not configured:", missing.join(", "));
-
-      if (isDev) {
-        // Development without credentials — return the raw token so the
-        // flow can be tested locally without a Google Cloud project.
-        return res.json({
-          success: true,
-          message: "Gmail API not configured (dev mode). Use the token below.",
->>>>>>> main/A1
           resetToken: rawToken,
           resetUrl,
         });
       }
-<<<<<<< HEAD
-=======
-
->>>>>>> main/A1
       return res.status(500).json({
         success: false,
         message: "Email service is not configured. Please contact the administrator.",
       });
     }
 
-<<<<<<< HEAD
     // ── 4. Send the password-reset email via Gmail API ───────
     console.log("[ForgotPassword] Sending reset email via Gmail API | recipient:", admin.email);
 
@@ -216,21 +165,6 @@ const forgotPassword = async (req, res) => {
 
       console.log(
         "[ForgotPassword] Reset email accepted — Gmail ID:", result.messageId,
-=======
-    // ── 4. Send via Gmail API ────────────────────────────────
-    // sendEmail() throws on any failure — the error is never swallowed.
-    // rawToken is NOT included in the email body or any log line.
-    console.log("[ForgotPassword] Requesting Gmail API send to:", admin.email);
-    try {
-      const result = await gmailService.sendEmail({
-        to:      admin.email,
-        subject: "Password Reset Request — CNPS Admin Portal",
-        html: buildResetEmailHtml(admin.name, resetUrl),
-      });
-
-      console.log(
-        "[ForgotPassword] Email delivered — Gmail ID:", result.messageId,
->>>>>>> main/A1
         "| recipient:", admin.email
       );
 
@@ -239,11 +173,7 @@ const forgotPassword = async (req, res) => {
         message: "A password reset link has been sent to your email address.",
       });
     } catch (sendErr) {
-<<<<<<< HEAD
       // sendErr.message is safe (contains no credentials or tokens).
-=======
-      // sendErr.message is safe to surface in logs (no secrets inside it).
->>>>>>> main/A1
       console.error("[ForgotPassword] Gmail API send failed:", sendErr.message);
       return res.status(500).json({
         success: false,
@@ -269,11 +199,7 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({ success: false, message: "Password must be at least 8 characters." });
     }
 
-<<<<<<< HEAD
     // Hash the incoming raw token and compare with the stored hash.
-=======
-    // Hash the incoming raw token and compare with the stored hash
->>>>>>> main/A1
     const hashed = crypto.createHash("sha256").update(token.trim()).digest("hex");
 
     const admin = await Admin.findOne({
@@ -288,13 +214,8 @@ const resetPassword = async (req, res) => {
       });
     }
 
-<<<<<<< HEAD
     // Update the password — the pre-save hook bcrypt-hashes it.
     // Clear token fields so the link cannot be reused.
-=======
-    // Update the password — pre-save hook bcrypt-hashes it.
-    // Clear the token fields so the link cannot be reused.
->>>>>>> main/A1
     admin.password             = password;
     admin.resetPasswordToken   = undefined;
     admin.resetPasswordExpires = undefined;
@@ -307,7 +228,6 @@ const resetPassword = async (req, res) => {
   }
 };
 
-<<<<<<< HEAD
 // ── Email template helpers ────────────────────────────────────
 
 /**
@@ -323,9 +243,7 @@ const resetPassword = async (req, res) => {
  * @returns {string}
  */
 function buildResetEmailHtml(adminName, resetUrl, expiresAt) {
-  // Format expiry as human-readable local time (UTC displayed in email)
   const expiryStr = expiresAt.toUTCString();
-
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -339,35 +257,23 @@ function buildResetEmailHtml(adminName, resetUrl, expiresAt) {
       <td align="center">
         <table width="100%" cellpadding="0" cellspacing="0"
                style="max-width:520px;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-
-          <!-- Header -->
           <tr>
             <td style="background:#102A43;padding:24px 28px;text-align:center;">
-              <h1 style="margin:0;color:#ffffff;font-size:1.25rem;font-weight:700;letter-spacing:0.3px;">
-                CNPS Public School
-              </h1>
-              <p style="margin:4px 0 0;color:rgba(255,255,255,0.6);font-size:0.8rem;">
-                Admin Portal
-              </p>
+              <h1 style="margin:0;color:#ffffff;font-size:1.25rem;font-weight:700;">CNPS Public School</h1>
+              <p style="margin:4px 0 0;color:rgba(255,255,255,0.6);font-size:0.8rem;">Admin Portal</p>
             </td>
           </tr>
-
-          <!-- Body -->
           <tr>
             <td style="background:#ffffff;padding:32px 28px;">
-
-              <!-- Icon -->
               <div style="text-align:center;margin-bottom:20px;">
                 <div style="display:inline-block;width:56px;height:56px;background:#EAF7FC;
                             border-radius:50%;line-height:56px;text-align:center;">
-                  <span style="font-size:1.6rem;">🔑</span>
+                  <span style="font-size:1.6rem;">&#128273;</span>
                 </div>
               </div>
-
               <h2 style="margin:0 0 10px;color:#102A43;font-size:1.15rem;text-align:center;">
                 Password Reset Request
               </h2>
-
               <p style="color:#52606D;line-height:1.7;margin:0 0 12px;">
                 Hi <strong>${adminName}</strong>,
               </p>
@@ -376,50 +282,38 @@ function buildResetEmailHtml(adminName, resetUrl, expiresAt) {
                 Click the button below to choose a new password.
                 This link will expire on <strong>${expiryStr}</strong> (1 hour).
               </p>
-
-              <!-- CTA Button -->
               <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
                 <tr>
                   <td align="center">
                     <a href="${resetUrl}"
                        style="display:inline-block;background:#16A8E0;color:#ffffff;
                               padding:14px 36px;border-radius:999px;font-weight:700;
-                              font-size:1rem;text-decoration:none;letter-spacing:0.2px;">
+                              font-size:1rem;text-decoration:none;">
                       Reset My Password
                     </a>
                   </td>
                 </tr>
               </table>
-
-              <!-- Divider -->
               <hr style="border:none;border-top:1px solid #E4EDF5;margin:0 0 20px;" />
-
-              <!-- Fallback link -->
               <p style="color:#829AB1;font-size:0.82rem;line-height:1.6;margin:0 0 16px;">
                 If the button above doesn't work, copy and paste this link into your browser:
               </p>
               <p style="margin:0 0 20px;word-break:break-all;">
                 <a href="${resetUrl}" style="color:#16A8E0;font-size:0.8rem;">${resetUrl}</a>
               </p>
-
-              <!-- Ignore notice -->
               <p style="color:#829AB1;font-size:0.8rem;line-height:1.6;margin:0;">
                 If you did not request a password reset, you can safely ignore this email —
                 your password will not change.
               </p>
             </td>
           </tr>
-
-          <!-- Footer -->
           <tr>
-            <td style="background:#F5F7FA;padding:16px 28px;text-align:center;
-                        border-top:1px solid #E4EDF5;">
+            <td style="background:#F5F7FA;padding:16px 28px;text-align:center;border-top:1px solid #E4EDF5;">
               <p style="margin:0;color:#A0AEC0;font-size:0.75rem;">
-                © ${new Date().getFullYear()} CNPS Public School · This is an automated message, please do not reply.
+                &copy; ${new Date().getFullYear()} CNPS Public School &middot; Automated message, please do not reply.
               </p>
             </td>
           </tr>
-
         </table>
       </td>
     </tr>
@@ -431,19 +325,11 @@ function buildResetEmailHtml(adminName, resetUrl, expiresAt) {
 /**
  * Plain-text body for the password-reset email (multipart/alternative fallback).
  * Must include the reset URL so users with text-only clients can still reset.
-=======
-// ── Helpers ───────────────────────────────────────────────────
-
-/**
- * Builds the HTML body for the password-reset email.
- * resetUrl contains the raw token — do not log it.
->>>>>>> main/A1
  *
  * @param {string} adminName
  * @param {string} resetUrl
  * @returns {string}
  */
-<<<<<<< HEAD
 function buildResetEmailText(adminName, resetUrl) {
   return [
     "CNPS Public School — Admin Portal",
@@ -462,40 +348,6 @@ function buildResetEmailText(adminName, resetUrl) {
     "",
     "© " + new Date().getFullYear() + " CNPS Public School",
   ].join("\n");
-=======
-function buildResetEmailHtml(adminName, resetUrl) {
-  return `
-    <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#f5f7fa;border-radius:12px;">
-      <div style="background:#102A43;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
-        <h2 style="color:#fff;margin:0;font-size:1.3rem;">CNPS Public School</h2>
-        <p style="color:rgba(255,255,255,0.65);margin:4px 0 0;font-size:0.85rem;">Admin Portal</p>
-      </div>
-      <div style="background:#fff;padding:32px 28px;border-radius:0 0 8px 8px;border:1px solid #D9EEF7;border-top:none;">
-        <h3 style="color:#102A43;margin:0 0 12px;">Password Reset Request</h3>
-        <p style="color:#52606D;line-height:1.6;">Hi <strong>${adminName}</strong>,</p>
-        <p style="color:#52606D;line-height:1.6;">
-          We received a request to reset your password. Click the button below to set a new password.
-          This link is valid for <strong>1 hour</strong>.
-        </p>
-        <div style="text-align:center;margin:28px 0;">
-          <a href="${resetUrl}"
-             style="display:inline-block;background:#16A8E0;color:#fff;padding:13px 32px;border-radius:999px;font-weight:700;font-size:1rem;text-decoration:none;">
-            Reset My Password
-          </a>
-        </div>
-        <p style="color:#829AB1;font-size:0.82rem;line-height:1.6;">
-          If you didn't request a password reset, you can safely ignore this email.
-          Your password will not change.
-        </p>
-        <hr style="border:none;border-top:1px solid #D9EEF7;margin:20px 0;" />
-        <p style="color:#829AB1;font-size:0.78rem;margin:0;">
-          If the button doesn't work, copy and paste this link into your browser:<br/>
-          <a href="${resetUrl}" style="color:#16A8E0;word-break:break-all;">${resetUrl}</a>
-        </p>
-      </div>
-    </div>
-  `;
->>>>>>> main/A1
 }
 
 module.exports = { login, getMe, changePassword, forgotPassword, resetPassword };
