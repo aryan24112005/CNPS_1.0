@@ -1,8 +1,8 @@
 "use strict";
-const crypto     = require("crypto");
-const jwt        = require("jsonwebtoken");
-const nodemailer = require("nodemailer");
-const Admin      = require("../models/Admin");
+const crypto      = require("crypto");
+const jwt         = require("jsonwebtoken");
+const Admin       = require("../models/Admin");
+const gmailService = require("../services/gmailService");
 
 // ── POST /api/auth/login ──────────────────────────────────────
 const login = async (req, res) => {
@@ -85,10 +85,12 @@ const changePassword = async (req, res) => {
   }
 };
 
-// ── POST /api/auth/forgot-password ───────────────────────────
-// Generates a 1-hour reset token. Sends it by email if SMTP is configured,
-// otherwise returns the token in the response body (dev mode only).
+// ── POST /api/auth/forgot-password ────────────────────────────
+// Generates a 1-hour reset token and delivers a reset link via the
+// Gmail API over HTTPS (OAuth 2.0).  No SMTP — avoids Render port blocks.
 const forgotPassword = async (req, res) => {
+  const isDev = process.env.NODE_ENV !== "production";
+
   try {
     const { email } = req.body;
     if (!email || !email.trim()) {
@@ -97,7 +99,7 @@ const forgotPassword = async (req, res) => {
 
     const admin = await Admin.findOne({ email: email.toLowerCase().trim() });
 
-    // Always return 200 for unknown emails — don't reveal whether the email exists
+    // Always respond generically for unknown emails — prevents account enumeration.
     if (!admin) {
       return res.json({
         success: true,
@@ -105,142 +107,79 @@ const forgotPassword = async (req, res) => {
       });
     }
 
-    // Generate a secure random token
-    const rawToken  = crypto.randomBytes(32).toString("hex");
+    // ── 1. Generate a secure reset token ─────────────────────
+    const rawToken  = crypto.randomBytes(32).toString("hex");  // 256-bit random
     const hashed    = crypto.createHash("sha256").update(rawToken).digest("hex");
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);  // 1 hour from now
 
-    // Use findByIdAndUpdate to avoid select:false field issues on save()
+    // Persist hashed token — use findByIdAndUpdate to bypass select:false issues
     await Admin.findByIdAndUpdate(admin._id, {
       resetPasswordToken:   hashed,
       resetPasswordExpires: expiresAt,
     });
 
-    // Build the reset URL — always use the configured FRONTEND_URL, never fallback to localhost in production
-    const rawFrontendUrl = process.env.FRONTEND_URL || "";
-    const frontendUrl    = rawFrontendUrl.split(",")[0].trim() ||
-      (process.env.NODE_ENV === "production"
-        ? "https://cnpspublicschool.netlify.app"
-        : "http://localhost:5173");
+    // ── 2. Build the production reset URL ────────────────────
+    // FRONTEND_URL is "https://cnpspublicschool.netlify.app" on Render.
+    // Hard-code the production fallback so a misconfigured env var never
+    // produces a localhost link in production emails.
+    const rawFrontendUrl = (process.env.FRONTEND_URL || "").split(",")[0].trim();
+    const frontendUrl    = rawFrontendUrl ||
+      (isDev ? "http://localhost:5173" : "https://cnpspublicschool.netlify.app");
     const resetUrl = `${frontendUrl}/login?resetToken=${rawToken}`;
 
-    const isDev = process.env.NODE_ENV !== "production";
+    // ── 3. Check Gmail API credentials ───────────────────────
+    const missing = gmailService.missingCredentials();
+    if (missing.length > 0) {
+      console.error("[ForgotPassword] Gmail API credentials not configured:", missing.join(", "));
 
-    // ── Try to send email if SMTP is configured ───────────────
-    // Reads SMTP_FROM_NAME / SMTP_FROM_EMAIL from .env (the actual variable names in .env)
-    const smtpUser = (process.env.SMTP_USER || "").trim();
-    const smtpPass = (process.env.SMTP_PASS || "").replace(/\s+/g, ""); // strip spaces from app password
-    const smtpConfigured =
-      process.env.SMTP_HOST &&
-      smtpUser &&
-      smtpPass &&
-      smtpUser !== "your@gmail.com";
-
-    console.log("[ForgotPassword] SMTP configured:", smtpConfigured, "| host:", process.env.SMTP_HOST, "| user:", smtpUser ? "SET" : "MISSING");
-
-    if (smtpConfigured) {
-      const transporter = nodemailer.createTransport({
-        host:   process.env.SMTP_HOST,
-        port:   Number(process.env.SMTP_PORT) || 587,
-        secure: Number(process.env.SMTP_PORT) === 465,
-        auth: {
-          user: smtpUser,
-          pass: smtpPass,
-        },
-      });
-
-      // Verify transport connectivity before attempting send
-      try {
-        await transporter.verify();
-        console.log("[ForgotPassword] SMTP transporter verified OK");
-      } catch (verifyErr) {
-        console.error("[ForgotPassword] SMTP verify failed — code:", verifyErr.code, "| response:", verifyErr.response, "| message:", verifyErr.message);
-        // Do NOT return false success — fall through to the real error response below
-        return res.status(500).json({
-          success: false,
-          message: "Email service is currently unavailable. Please try again later or contact support.",
-          ...(isDev && { debug: `SMTP verify: ${verifyErr.message}` }),
-        });
-      }
-
-      // Prefer SMTP_FROM_NAME/SMTP_FROM_EMAIL (actual .env names), fall back to EMAIL_FROM_NAME/EMAIL_FROM_ADDRESS
-      const fromName    = (process.env.SMTP_FROM_NAME    || process.env.EMAIL_FROM_NAME    || "CNPS School").trim();
-      const fromAddress = (process.env.SMTP_FROM_EMAIL   || process.env.EMAIL_FROM_ADDRESS || smtpUser).trim();
-
-      try {
-        const info = await transporter.sendMail({
-          from:    `"${fromName}" <${fromAddress}>`,
-          to:      admin.email,
-          subject: "Password Reset Request — CNPS Admin Portal",
-          html: `
-            <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#f5f7fa;border-radius:12px;">
-              <div style="background:#102A43;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
-                <h2 style="color:#fff;margin:0;font-size:1.3rem;">CNPS Public School</h2>
-                <p style="color:rgba(255,255,255,0.65);margin:4px 0 0;font-size:0.85rem;">Admin Portal</p>
-              </div>
-              <div style="background:#fff;padding:32px 28px;border-radius:0 0 8px 8px;border:1px solid #D9EEF7;border-top:none;">
-                <h3 style="color:#102A43;margin:0 0 12px;">Password Reset Request</h3>
-                <p style="color:#52606D;line-height:1.6;">Hi <strong>${admin.name}</strong>,</p>
-                <p style="color:#52606D;line-height:1.6;">
-                  We received a request to reset your password. Click the button below to set a new password.
-                  This link is valid for <strong>1 hour</strong>.
-                </p>
-                <div style="text-align:center;margin:28px 0;">
-                  <a href="${resetUrl}"
-                     style="display:inline-block;background:#16A8E0;color:#fff;padding:13px 32px;border-radius:999px;font-weight:700;font-size:1rem;text-decoration:none;">
-                    Reset My Password
-                  </a>
-                </div>
-                <p style="color:#829AB1;font-size:0.82rem;line-height:1.6;">
-                  If you didn't request a password reset, you can safely ignore this email.
-                  Your password will not change.
-                </p>
-                <hr style="border:none;border-top:1px solid #D9EEF7;margin:20px 0;" />
-                <p style="color:#829AB1;font-size:0.78rem;margin:0;">
-                  If the button doesn't work, copy and paste this link into your browser:<br/>
-                  <a href="${resetUrl}" style="color:#16A8E0;word-break:break-all;">${resetUrl}</a>
-                </p>
-              </div>
-            </div>
-          `,
-        });
-
-        console.log("[ForgotPassword] Email accepted by server — messageId:", info.messageId, "| accepted:", info.accepted?.length, "| rejected:", info.rejected?.length);
-
+      if (isDev) {
+        // Development without credentials — return the raw token so the
+        // flow can be tested locally without a Google Cloud project.
         return res.json({
           success: true,
-          message: "A password reset link has been sent to your email address.",
-        });
-      } catch (mailErr) {
-        // Log the full error so Render logs show the real cause
-        console.error("[ForgotPassword] sendMail failed — code:", mailErr.code, "| response:", mailErr.response, "| message:", mailErr.message);
-        return res.status(500).json({
-          success: false,
-          message: "Failed to send reset email. Please try again later or contact support.",
-          ...(isDev && { debug: `sendMail: ${mailErr.message}` }),
+          message: "Gmail API not configured (dev mode). Use the token below.",
+          resetToken: rawToken,
+          resetUrl,
         });
       }
-    }
 
-    // ── SMTP not configured — dev mode only ──────────────────
-    if (!isDev) {
-      // Production with no SMTP: log clearly and return a non-misleading error
-      console.error("[ForgotPassword] SMTP not configured in production. Set SMTP_HOST, SMTP_USER, SMTP_PASS on Render.");
       return res.status(500).json({
         success: false,
-        message: "Email service is not configured. Please contact the site administrator.",
+        message: "Email service is not configured. Please contact the administrator.",
       });
     }
 
-    // Dev mode — return token directly so local testing works without SMTP
-    return res.json({
-      success: true,
-      message: "SMTP not configured. Use the reset token below (dev mode only).",
-      resetToken: rawToken,
-      resetUrl,
-    });
+    // ── 4. Send via Gmail API ────────────────────────────────
+    // sendEmail() throws on any failure — the error is never swallowed.
+    // rawToken is NOT included in the email body or any log line.
+    console.log("[ForgotPassword] Requesting Gmail API send to:", admin.email);
+    try {
+      const result = await gmailService.sendEmail({
+        to:      admin.email,
+        subject: "Password Reset Request — CNPS Admin Portal",
+        html: buildResetEmailHtml(admin.name, resetUrl),
+      });
+
+      console.log(
+        "[ForgotPassword] Email delivered — Gmail ID:", result.messageId,
+        "| recipient:", admin.email
+      );
+
+      return res.json({
+        success: true,
+        message: "A password reset link has been sent to your email address.",
+      });
+    } catch (sendErr) {
+      // sendErr.message is safe to surface in logs (no secrets inside it).
+      console.error("[ForgotPassword] Gmail API send failed:", sendErr.message);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send reset email. Please try again later or contact support.",
+        ...(isDev && { debug: sendErr.message }),
+      });
+    }
   } catch (err) {
-    console.error("[ForgotPassword] Unexpected error:", err);
+    console.error("[ForgotPassword] Unexpected error:", err.message);
     return res.status(500).json({ success: false, message: "Failed to process request. Please try again." });
   }
 };
@@ -257,7 +196,7 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({ success: false, message: "Password must be at least 8 characters." });
     }
 
-    // Hash the incoming raw token to compare with stored hash
+    // Hash the incoming raw token and compare with the stored hash
     const hashed = crypto.createHash("sha256").update(token.trim()).digest("hex");
 
     const admin = await Admin.findOne({
@@ -272,7 +211,8 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    // Set new password (pre-save hook will hash it)
+    // Update the password — pre-save hook bcrypt-hashes it.
+    // Clear the token fields so the link cannot be reused.
     admin.password             = password;
     admin.resetPasswordToken   = undefined;
     admin.resetPasswordExpires = undefined;
@@ -284,5 +224,49 @@ const resetPassword = async (req, res) => {
     return res.status(500).json({ success: false, message: "Failed to reset password. Please try again." });
   }
 };
+
+// ── Helpers ───────────────────────────────────────────────────
+
+/**
+ * Builds the HTML body for the password-reset email.
+ * resetUrl contains the raw token — do not log it.
+ *
+ * @param {string} adminName
+ * @param {string} resetUrl
+ * @returns {string}
+ */
+function buildResetEmailHtml(adminName, resetUrl) {
+  return `
+    <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#f5f7fa;border-radius:12px;">
+      <div style="background:#102A43;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
+        <h2 style="color:#fff;margin:0;font-size:1.3rem;">CNPS Public School</h2>
+        <p style="color:rgba(255,255,255,0.65);margin:4px 0 0;font-size:0.85rem;">Admin Portal</p>
+      </div>
+      <div style="background:#fff;padding:32px 28px;border-radius:0 0 8px 8px;border:1px solid #D9EEF7;border-top:none;">
+        <h3 style="color:#102A43;margin:0 0 12px;">Password Reset Request</h3>
+        <p style="color:#52606D;line-height:1.6;">Hi <strong>${adminName}</strong>,</p>
+        <p style="color:#52606D;line-height:1.6;">
+          We received a request to reset your password. Click the button below to set a new password.
+          This link is valid for <strong>1 hour</strong>.
+        </p>
+        <div style="text-align:center;margin:28px 0;">
+          <a href="${resetUrl}"
+             style="display:inline-block;background:#16A8E0;color:#fff;padding:13px 32px;border-radius:999px;font-weight:700;font-size:1rem;text-decoration:none;">
+            Reset My Password
+          </a>
+        </div>
+        <p style="color:#829AB1;font-size:0.82rem;line-height:1.6;">
+          If you didn't request a password reset, you can safely ignore this email.
+          Your password will not change.
+        </p>
+        <hr style="border:none;border-top:1px solid #D9EEF7;margin:20px 0;" />
+        <p style="color:#829AB1;font-size:0.78rem;margin:0;">
+          If the button doesn't work, copy and paste this link into your browser:<br/>
+          <a href="${resetUrl}" style="color:#16A8E0;word-break:break-all;">${resetUrl}</a>
+        </p>
+      </div>
+    </div>
+  `;
+}
 
 module.exports = { login, getMe, changePassword, forgotPassword, resetPassword };
