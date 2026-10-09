@@ -1,5 +1,12 @@
 import db from "../config/db.js";
 
+/*
+|--------------------------------------------------------------------------
+| Real schema: id, label, value, icon, sort_order,
+|              status (active|inactive), created_at, updated_at
+|--------------------------------------------------------------------------
+*/
+
 /* ========================================
    GET ALL COUNTS
 ======================================== */
@@ -9,7 +16,7 @@ export const getHomepageCounts = async (req, res) => {
         const [rows] = await db.query(`
             SELECT
                 id,
-                number_value,
+                value,
                 label,
                 icon,
                 status,
@@ -47,7 +54,7 @@ export const getHomepageCountById = async (req, res) => {
             `
             SELECT
                 id,
-                number_value,
+                value,
                 label,
                 icon,
                 status,
@@ -72,10 +79,7 @@ export const getHomepageCountById = async (req, res) => {
             data: rows[0],
         });
     } catch (error) {
-        console.error(
-            "Get homepage count by ID error:",
-            error
-        );
+        console.error("Get homepage count by ID error:", error);
 
         res.status(500).json({
             success: false,
@@ -91,54 +95,31 @@ export const getHomepageCountById = async (req, res) => {
 
 export const createHomepageCount = async (req, res) => {
     try {
-        const {
-            number_value,
-            label,
-            icon,
-            status,
-            sort_order,
-        } = req.body;
+        const { value, label, icon, status, sort_order } = req.body;
 
-        if (
-            number_value === undefined ||
-            number_value === null ||
-            !label
-        ) {
+        if (value === undefined || value === null || value === "" || !label) {
             return res.status(400).json({
                 success: false,
-                message: "Number and label are required.",
+                message: "Value and label are required.",
             });
         }
 
         const [result] = await db.query(
             `
-            INSERT INTO homepage_counts
-            (
-                number_value,
-                label,
-                icon,
-                status,
-                sort_order
-            )
+            INSERT INTO homepage_counts (value, label, icon, status, sort_order)
             VALUES (?, ?, ?, ?, ?)
             `,
             [
-                Number(number_value),
+                String(value),
                 label,
                 icon || null,
                 status || "active",
-                sort_order !== undefined
-                    ? Number(sort_order)
-                    : 0,
+                sort_order !== undefined ? Number(sort_order) : 0,
             ]
         );
 
         const [rows] = await db.query(
-            `
-            SELECT *
-            FROM homepage_counts
-            WHERE id = ?
-            `,
+            `SELECT * FROM homepage_counts WHERE id = ?`,
             [result.insertId]
         );
 
@@ -148,10 +129,7 @@ export const createHomepageCount = async (req, res) => {
             data: rows[0],
         });
     } catch (error) {
-        console.error(
-            "Create homepage count error:",
-            error
-        );
+        console.error("Create homepage count error:", error);
 
         res.status(500).json({
             success: false,
@@ -168,21 +146,10 @@ export const createHomepageCount = async (req, res) => {
 export const updateHomepageCount = async (req, res) => {
     try {
         const { id } = req.params;
-
-        const {
-            number_value,
-            label,
-            icon,
-            status,
-            sort_order,
-        } = req.body;
+        const { value, label, icon, status, sort_order } = req.body;
 
         const [existingRows] = await db.query(
-            `
-            SELECT *
-            FROM homepage_counts
-            WHERE id = ?
-            `,
+            `SELECT * FROM homepage_counts WHERE id = ?`,
             [id]
         );
 
@@ -199,7 +166,7 @@ export const updateHomepageCount = async (req, res) => {
             `
             UPDATE homepage_counts
             SET
-                number_value = ?,
+                value = ?,
                 label = ?,
                 icon = ?,
                 status = ?,
@@ -207,36 +174,17 @@ export const updateHomepageCount = async (req, res) => {
             WHERE id = ?
             `,
             [
-                number_value !== undefined
-                    ? Number(number_value)
-                    : existing.number_value,
-
-                label !== undefined
-                    ? label
-                    : existing.label,
-
-                icon !== undefined
-                    ? icon || null
-                    : existing.icon,
-
-                status !== undefined
-                    ? status
-                    : existing.status,
-
-                sort_order !== undefined
-                    ? Number(sort_order)
-                    : existing.sort_order,
-
+                value !== undefined ? String(value) : existing.value,
+                label !== undefined ? label : existing.label,
+                icon !== undefined ? (icon || null) : existing.icon,
+                status !== undefined ? status : existing.status,
+                sort_order !== undefined ? Number(sort_order) : existing.sort_order,
                 id,
             ]
         );
 
         const [rows] = await db.query(
-            `
-            SELECT *
-            FROM homepage_counts
-            WHERE id = ?
-            `,
+            `SELECT * FROM homepage_counts WHERE id = ?`,
             [id]
         );
 
@@ -246,10 +194,7 @@ export const updateHomepageCount = async (req, res) => {
             data: rows[0],
         });
     } catch (error) {
-        console.error(
-            "Update homepage count error:",
-            error
-        );
+        console.error("Update homepage count error:", error);
 
         res.status(500).json({
             success: false,
@@ -268,10 +213,7 @@ export const deleteHomepageCount = async (req, res) => {
         const { id } = req.params;
 
         const [result] = await db.query(
-            `
-            DELETE FROM homepage_counts
-            WHERE id = ?
-            `,
+            `DELETE FROM homepage_counts WHERE id = ?`,
             [id]
         );
 
@@ -287,10 +229,7 @@ export const deleteHomepageCount = async (req, res) => {
             message: "Homepage count deleted successfully.",
         });
     } catch (error) {
-        console.error(
-            "Delete homepage count error:",
-            error
-        );
+        console.error("Delete homepage count error:", error);
 
         res.status(500).json({
             success: false,

@@ -5,7 +5,7 @@ export const getPublicHomepageCounts = async (req, res) => {
         const [rows] = await db.query(`
             SELECT
                 id,
-                number_value,
+                value,
                 label,
                 icon,
                 sort_order

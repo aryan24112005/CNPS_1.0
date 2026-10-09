@@ -31,7 +31,7 @@ export const uploadTestimonialAvatar = async (req, res, next) => {
 
         const [rows] = await pool.query(
             `
-            SELECT id, avatar
+            SELECT id, image
             FROM testimonials
             WHERE id = ?
             LIMIT 1
@@ -48,13 +48,13 @@ export const uploadTestimonialAvatar = async (req, res, next) => {
             });
         }
 
-        const oldAvatar = rows[0].avatar;
+        const oldAvatar = rows[0].image;
         const newAvatar = uploadedFilePath;
 
         await pool.query(
             `
             UPDATE testimonials
-            SET avatar = ?
+            SET image = ?
             WHERE id = ?
             `,
             [newAvatar, id]

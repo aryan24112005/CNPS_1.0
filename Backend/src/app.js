@@ -64,7 +64,7 @@ app.use(
 // CORS
 app.use(
     cors({
-        origin: process.env.FRONTEND_URL || "http://localhost:5173",
+        origin: process.env.FRONTEND_URL || "http://localhost:5000",
     })
 );
 
@@ -113,6 +113,7 @@ app.use(
 app.use("/api/settings", settingsRoutes);
 app.use("/api/public/settings", publicSettingsRoutes);
 app.use("/api/contact", contactMessagesRoutes);
+app.use("/api/contact-messages", contactMessagesRoutes);
 app.use("/api/admission", admissionRoutes);
 
 

@@ -25,7 +25,13 @@ export const getAdminAbout = async () => {
     return data.data;
 };
 
-export const updateAdminAbout = async (aboutData, imageFile = null) => {
+export const updateAdminAbout = async (
+    aboutData,
+    mainImageFile = null,
+    visionImageFile = null,
+    missionImageFile = null,
+    valuesImageFile = null
+) => {
     const formData = new FormData();
 
     formData.append("title", aboutData.title || "");
@@ -62,8 +68,20 @@ export const updateAdminAbout = async (aboutData, imageFile = null) => {
         aboutData.values_description || ""
     );
 
-    if (imageFile) {
-        formData.append("image", imageFile);
+    if (mainImageFile) {
+        formData.append("image", mainImageFile);
+    }
+
+    if (visionImageFile) {
+        formData.append("vision_image", visionImageFile);
+    }
+
+    if (missionImageFile) {
+        formData.append("mission_image", missionImageFile);
+    }
+
+    if (valuesImageFile) {
+        formData.append("values_image", valuesImageFile);
     }
 
     const response = await fetch(`${API_URL}/about`, {

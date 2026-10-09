@@ -13,8 +13,7 @@ export const getPublicHeroSlides = async (req, res) => {
                 description,
                 button_text,
                 button_url,
-                media_type,
-                media_path,
+                image,
                 sort_order
             FROM home_hero_slides
             WHERE status = 'active'

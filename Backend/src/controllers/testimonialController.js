@@ -6,18 +6,19 @@ import path from "path";
 |--------------------------------------------------------------------------
 | Get All Testimonials - Admin
 |--------------------------------------------------------------------------
+| Real schema: id, name, designation, image, rating, message,
+|              status (active|inactive), sort_order, created_at, updated_at
 */
 export const getTestimonials = async (req, res, next) => {
     try {
         const [rows] = await pool.query(`
             SELECT
                 id,
-                user_id,
                 name,
-                role,
-                avatar,
+                designation,
+                image,
                 rating,
-                review,
+                message,
                 status,
                 sort_order,
                 created_at,
@@ -49,12 +50,11 @@ export const getTestimonialById = async (req, res, next) => {
             `
             SELECT
                 id,
-                user_id,
                 name,
-                role,
-                avatar,
+                designation,
+                image,
                 rating,
-                review,
+                message,
                 status,
                 sort_order,
                 created_at,
@@ -92,76 +92,59 @@ export const createTestimonial = async (req, res, next) => {
     try {
         const {
             name,
-            role,
-            avatar,
+            designation,
             rating,
-            review,
+            message,
             status,
             sort_order,
-            user_id,
         } = req.body;
 
         // Required fields
-        if (!name || !rating || !review) {
+        if (!name || !message) {
             return res.status(400).json({
                 success: false,
-                message: "Name, rating and review are required.",
+                message: "Name and message are required.",
             });
         }
 
-        // Validate rating
-        const numericRating = Number(rating);
-
-        if (
-            !Number.isInteger(numericRating) ||
-            numericRating < 1 ||
-            numericRating > 5
-        ) {
-            return res.status(400).json({
-                success: false,
-                message: "Rating must be an integer between 1 and 5.",
-            });
+        // Validate rating if provided
+        let numericRating = null;
+        if (rating !== undefined && rating !== null && rating !== "") {
+            numericRating = Number(rating);
+            if (
+                !Number.isInteger(numericRating) ||
+                numericRating < 1 ||
+                numericRating > 5
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Rating must be an integer between 1 and 5.",
+                });
+            }
         }
 
         // Validate status
-        const allowedStatuses = [
-            "pending",
-            "approved",
-            "rejected",
-        ];
-
-        const testimonialStatus = status || "pending";
+        const allowedStatuses = ["active", "inactive"];
+        const testimonialStatus = status || "active";
 
         if (!allowedStatuses.includes(testimonialStatus)) {
             return res.status(400).json({
                 success: false,
-                message:
-                    "Status must be pending, approved or rejected.",
+                message: "Status must be active or inactive.",
             });
         }
 
         const [result] = await pool.query(
             `
             INSERT INTO testimonials
-            (
-                user_id,
-                name,
-                role,
-                avatar,
-                rating,
-                review,
-                status,
-                sort_order
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (name, designation, rating, message, status, sort_order)
+            VALUES (?, ?, ?, ?, ?, ?)
             `,
             [
-                user_id || null,
                 name.trim(),
-                role?.trim() || null,
-                avatar?.trim() || null,
+                designation?.trim() || null,
                 numericRating,
-                review.trim(),
+                message.trim(),
                 testimonialStatus,
                 Number(sort_order) || 0,
             ]
@@ -189,10 +172,9 @@ export const updateTestimonial = async (req, res, next) => {
 
         const {
             name,
-            role,
-            avatar,
+            designation,
             rating,
-            review,
+            message,
             status,
             sort_order,
         } = req.body;
@@ -211,39 +193,35 @@ export const updateTestimonial = async (req, res, next) => {
         }
 
         // Required fields
-        if (!name || !rating || !review) {
+        if (!name || !message) {
             return res.status(400).json({
                 success: false,
-                message: "Name, rating and review are required.",
+                message: "Name and message are required.",
             });
         }
 
-        // Validate rating
-        const numericRating = Number(rating);
-
-        if (
-            !Number.isInteger(numericRating) ||
-            numericRating < 1 ||
-            numericRating > 5
-        ) {
-            return res.status(400).json({
-                success: false,
-                message: "Rating must be an integer between 1 and 5.",
-            });
+        // Validate rating if provided
+        let numericRating = null;
+        if (rating !== undefined && rating !== null && rating !== "") {
+            numericRating = Number(rating);
+            if (
+                !Number.isInteger(numericRating) ||
+                numericRating < 1 ||
+                numericRating > 5
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Rating must be an integer between 1 and 5.",
+                });
+            }
         }
 
         // Validate status
-        const allowedStatuses = [
-            "pending",
-            "approved",
-            "rejected",
-        ];
-
-        if (!allowedStatuses.includes(status)) {
+        const allowedStatuses = ["active", "inactive"];
+        if (status && !allowedStatuses.includes(status)) {
             return res.status(400).json({
                 success: false,
-                message:
-                    "Status must be pending, approved or rejected.",
+                message: "Status must be active or inactive.",
             });
         }
 
@@ -252,21 +230,19 @@ export const updateTestimonial = async (req, res, next) => {
             UPDATE testimonials
             SET
                 name = ?,
-                role = ?,
-                avatar = ?,
+                designation = ?,
                 rating = ?,
-                review = ?,
+                message = ?,
                 status = ?,
                 sort_order = ?
             WHERE id = ?
             `,
             [
                 name.trim(),
-                role?.trim() || null,
-                avatar?.trim() || null,
+                designation?.trim() || null,
                 numericRating,
-                review.trim(),
-                status,
+                message.trim(),
+                status || "active",
                 Number(sort_order) || 0,
                 id,
             ]
@@ -291,14 +267,9 @@ export const deleteTestimonial = async (req, res, next) => {
     try {
         const { id } = req.params;
 
-        // Get avatar before deleting the record
+        // Get image path before deleting the record
         const [rows] = await pool.query(
-            `
-            SELECT avatar
-            FROM testimonials
-            WHERE id = ?
-            LIMIT 1
-            `,
+            `SELECT image FROM testimonials WHERE id = ? LIMIT 1`,
             [id]
         );
 
@@ -309,7 +280,7 @@ export const deleteTestimonial = async (req, res, next) => {
             });
         }
 
-        const avatar = rows[0].avatar;
+        const image = rows[0].image;
 
         // Delete database record
         const [result] = await pool.query(
@@ -324,16 +295,9 @@ export const deleteTestimonial = async (req, res, next) => {
             });
         }
 
-        // Delete uploaded avatar only
-        if (
-            avatar &&
-            avatar.startsWith("uploads/testimonials/")
-        ) {
-            const absolutePath = path.resolve(
-                process.cwd(),
-                avatar
-            );
-
+        // Delete uploaded image file
+        if (image && image.startsWith("uploads/testimonials/")) {
+            const absolutePath = path.resolve(process.cwd(), image);
             if (fs.existsSync(absolutePath)) {
                 fs.unlinkSync(absolutePath);
             }

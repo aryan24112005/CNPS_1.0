@@ -11,13 +11,13 @@ export const getPublicTestimonials = async (req, res, next) => {
             SELECT
                 id,
                 name,
-                role,
-                avatar,
+                designation,
+                image,
                 rating,
-                review,
+                message,
                 created_at
             FROM testimonials
-            WHERE status = 'approved'
+            WHERE status = 'active'
             ORDER BY sort_order ASC, created_at DESC, id DESC
         `);
 
@@ -45,14 +45,14 @@ export const getPublicTestimonialById = async (req, res, next) => {
             SELECT
                 id,
                 name,
-                role,
-                avatar,
+                designation,
+                image,
                 rating,
-                review,
+                message,
                 created_at
             FROM testimonials
             WHERE id = ?
-              AND status = 'approved'
+              AND status = 'active'
             LIMIT 1
             `,
             [id]

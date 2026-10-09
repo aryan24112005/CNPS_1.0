@@ -2,14 +2,25 @@ import db from "../config/db.js";
 import fs from "fs";
 import path from "path";
 
+/*
+|--------------------------------------------------------------------------
+| Real schema: id, title, subtitle, description, image,
+|              button_text, button_url, status, sort_order,
+|              created_at, updated_at
+| NOTE: There is NO media_type or media_path column.
+|       The single 'image' column stores the file path.
+|--------------------------------------------------------------------------
+*/
+
 /* ----------------------------------------
    Helper: Delete uploaded file
 ----------------------------------------- */
 const deleteFile = (filePath) => {
     if (!filePath) return;
 
-    const relativePath = filePath.replace(/^\/uploads\//, "");
-    const fullPath = path.resolve("uploads", relativePath);
+    // filePath may be stored as /uploads/hero/xxx or uploads/hero/xxx
+    const relative = filePath.replace(/^\//, "");
+    const fullPath = path.resolve(process.cwd(), relative);
 
     if (fs.existsSync(fullPath)) {
         fs.unlinkSync(fullPath);
@@ -22,7 +33,18 @@ const deleteFile = (filePath) => {
 export const getHeroSlides = async (req, res) => {
     try {
         const [rows] = await db.query(`
-            SELECT *
+            SELECT
+                id,
+                title,
+                subtitle,
+                description,
+                image,
+                button_text,
+                button_url,
+                status,
+                sort_order,
+                created_at,
+                updated_at
             FROM home_hero_slides
             ORDER BY sort_order ASC, id DESC
         `);
@@ -49,12 +71,7 @@ export const getHeroSlideById = async (req, res) => {
         const { id } = req.params;
 
         const [rows] = await db.query(
-            `
-            SELECT *
-            FROM home_hero_slides
-            WHERE id = ?
-            LIMIT 1
-            `,
+            `SELECT * FROM home_hero_slides WHERE id = ? LIMIT 1`,
             [id]
         );
 
@@ -65,10 +82,7 @@ export const getHeroSlideById = async (req, res) => {
             });
         }
 
-        res.json({
-            success: true,
-            data: rows[0],
-        });
+        res.json({ success: true, data: rows[0] });
     } catch (error) {
         console.error("Get hero slide error:", error);
 
@@ -101,28 +115,13 @@ export const createHeroSlide = async (req, res) => {
             });
         }
 
-        /* Detect media type automatically */
-        const mediaType = req.file.mimetype.startsWith("video/")
-            ? "video"
-            : "image";
-
-        const mediaPath = `/uploads/hero/${req.file.filename}`;
+        const imagePath = `/uploads/hero/${req.file.filename}`;
 
         const [result] = await db.query(
             `
             INSERT INTO home_hero_slides
-            (
-                title,
-                subtitle,
-                description,
-                button_text,
-                button_url,
-                media_type,
-                media_path,
-                status,
-                sort_order
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (title, subtitle, description, button_text, button_url, image, status, sort_order)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             `,
             [
                 title || null,
@@ -130,19 +129,14 @@ export const createHeroSlide = async (req, res) => {
                 description || null,
                 button_text || null,
                 button_url || null,
-                mediaType,
-                mediaPath,
+                imagePath,
                 status || "active",
                 Number(sort_order) || 0,
             ]
         );
 
         const [rows] = await db.query(
-            `
-            SELECT *
-            FROM home_hero_slides
-            WHERE id = ?
-            `,
+            `SELECT * FROM home_hero_slides WHERE id = ?`,
             [result.insertId]
         );
 
@@ -154,10 +148,8 @@ export const createHeroSlide = async (req, res) => {
     } catch (error) {
         console.error("Create hero slide error:", error);
 
-        /* Remove uploaded file if DB insertion fails */
         if (req.file) {
-            const uploadedPath = `/uploads/hero/${req.file.filename}`;
-            deleteFile(uploadedPath);
+            deleteFile(`/uploads/hero/${req.file.filename}`);
         }
 
         res.status(500).json({
@@ -166,7 +158,6 @@ export const createHeroSlide = async (req, res) => {
         });
     }
 };
-
 
 /* ----------------------------------------
    BULK CREATE HERO SLIDES
@@ -192,40 +183,22 @@ export const createHeroSlidesBulk = async (req, res) => {
             sort_order,
         } = req.body;
 
-        /* Find current highest sort order */
         const [orderRows] = await db.query(`
             SELECT COALESCE(MAX(sort_order), -1) AS max_order
             FROM home_hero_slides
         `);
 
-        let nextOrder =
-            Number(orderRows[0]?.max_order ?? -1) + 1;
-
+        let nextOrder = Number(orderRows[0]?.max_order ?? -1) + 1;
         const createdSlides = [];
 
         for (const file of files) {
-            const mediaType = file.mimetype.startsWith("video/")
-                ? "video"
-                : "image";
-
-            const mediaPath =
-                `/uploads/hero/${file.filename}`;
+            const imagePath = `/uploads/hero/${file.filename}`;
 
             const [result] = await db.query(
                 `
                 INSERT INTO home_hero_slides
-                (
-                    title,
-                    subtitle,
-                    description,
-                    button_text,
-                    button_url,
-                    media_type,
-                    media_path,
-                    status,
-                    sort_order
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (title, subtitle, description, button_text, button_url, image, status, sort_order)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 `,
                 [
                     title || null,
@@ -233,8 +206,7 @@ export const createHeroSlidesBulk = async (req, res) => {
                     description || null,
                     button_text || null,
                     button_url || null,
-                    mediaType,
-                    mediaPath,
+                    imagePath,
                     status || "active",
                     sort_order !== undefined
                         ? Number(sort_order) + createdSlides.length
@@ -243,11 +215,7 @@ export const createHeroSlidesBulk = async (req, res) => {
             );
 
             const [rows] = await db.query(
-                `
-                SELECT *
-                FROM home_hero_slides
-                WHERE id = ?
-                `,
+                `SELECT * FROM home_hero_slides WHERE id = ?`,
                 [result.insertId]
             );
 
@@ -260,12 +228,8 @@ export const createHeroSlidesBulk = async (req, res) => {
             data: createdSlides,
         });
     } catch (error) {
-        console.error(
-            "Bulk hero upload error:",
-            error
-        );
+        console.error("Bulk hero upload error:", error);
 
-        /* Cleanup uploaded files if something fails */
         if (req.files?.length) {
             for (const file of req.files) {
                 if (file.path && fs.existsSync(file.path)) {
@@ -280,7 +244,6 @@ export const createHeroSlidesBulk = async (req, res) => {
         });
     }
 };
-
 
 /* ----------------------------------------
    UPDATE HERO SLIDE
@@ -300,12 +263,7 @@ export const updateHeroSlide = async (req, res) => {
         } = req.body;
 
         const [existingRows] = await db.query(
-            `
-            SELECT *
-            FROM home_hero_slides
-            WHERE id = ?
-            LIMIT 1
-            `,
+            `SELECT * FROM home_hero_slides WHERE id = ? LIMIT 1`,
             [id]
         );
 
@@ -321,20 +279,11 @@ export const updateHeroSlide = async (req, res) => {
         }
 
         const existing = existingRows[0];
+        let imagePath = existing.image;
 
-        let mediaType = existing.media_type;
-        let mediaPath = existing.media_path;
-
-        /* If new media uploaded */
         if (req.file) {
-            mediaType = req.file.mimetype.startsWith("video/")
-                ? "video"
-                : "image";
-
-            mediaPath = `/uploads/hero/${req.file.filename}`;
-
-            /* Delete old media */
-            deleteFile(existing.media_path);
+            imagePath = `/uploads/hero/${req.file.filename}`;
+            deleteFile(existing.image);
         }
 
         await db.query(
@@ -346,8 +295,7 @@ export const updateHeroSlide = async (req, res) => {
                 description = ?,
                 button_text = ?,
                 button_url = ?,
-                media_type = ?,
-                media_path = ?,
+                image = ?,
                 status = ?,
                 sort_order = ?
             WHERE id = ?
@@ -358,8 +306,7 @@ export const updateHeroSlide = async (req, res) => {
                 description ?? existing.description,
                 button_text ?? existing.button_text,
                 button_url ?? existing.button_url,
-                mediaType,
-                mediaPath,
+                imagePath,
                 status ?? existing.status,
                 sort_order !== undefined
                     ? Number(sort_order)
@@ -369,11 +316,7 @@ export const updateHeroSlide = async (req, res) => {
         );
 
         const [rows] = await db.query(
-            `
-            SELECT *
-            FROM home_hero_slides
-            WHERE id = ?
-            `,
+            `SELECT * FROM home_hero_slides WHERE id = ?`,
             [id]
         );
 
@@ -404,12 +347,7 @@ export const deleteHeroSlide = async (req, res) => {
         const { id } = req.params;
 
         const [rows] = await db.query(
-            `
-            SELECT *
-            FROM home_hero_slides
-            WHERE id = ?
-            LIMIT 1
-            `,
+            `SELECT * FROM home_hero_slides WHERE id = ? LIMIT 1`,
             [id]
         );
 
@@ -422,16 +360,9 @@ export const deleteHeroSlide = async (req, res) => {
 
         const slide = rows[0];
 
-        await db.query(
-            `
-            DELETE FROM home_hero_slides
-            WHERE id = ?
-            `,
-            [id]
-        );
+        await db.query(`DELETE FROM home_hero_slides WHERE id = ?`, [id]);
 
-        /* Delete physical media file */
-        deleteFile(slide.media_path);
+        deleteFile(slide.image);
 
         res.json({
             success: true,

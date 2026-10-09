@@ -7,15 +7,15 @@ import Notices from "./pages/Notices";
 import NoticeDetails from "./pages/NoticeDetails";
 import About from "./pages/About";
 import Courses from "./pages/Courses";
-import CourseClasses from "./pages/CourseClasses";
+// import CourseClasses from "./pages/CourseClasses"; // UNUSED — uses static data/courses.js, not CMS
 import CourseDetails from "./pages/CourseDetails";
 import Events from "./pages/Events";
 import EventDetails from "./pages/EventDetails";
 import Trainers from "./pages/Trainers";
-import Pricing from "./pages/Pricing";
+// import Pricing from "./pages/Pricing";           // UNUSED — static hardcoded data, no CMS integration
 import Login from "./pages/Login";
-import StudentRegister from "./pages/StudentRegister";
-import TeacherRegister from "./pages/TeacherRegister";
+// import StudentRegister from "./pages/StudentRegister"; // UNUSED — no backend, static form only
+// import TeacherRegister from "./pages/TeacherRegister"; // UNUSED — no backend, static form only
 import ForgotPassword from "./pages/ForgotPassword";
 import Contact from "./pages/Contact";
 import Admission from "./pages/Admission";
@@ -86,7 +86,8 @@ function App() {
 
         <Route path="/courses" element={<Courses />} />
 
-        <Route path="/courses/:courseId" element={<CourseClasses />} />
+        {/* UNUSED — CourseClasses uses static data/courses.js, not CMS */}
+        {/* <Route path="/courses/:courseId" element={<CourseClasses />} /> */}
 
         {/* Single course details */}
         <Route path="/course-details/:courseId" element={<CourseDetails />} />
@@ -100,13 +101,14 @@ function App() {
 
         <Route path="/trainers" element={<Trainers />} />
 
-        <Route path="/pricing" element={<Pricing />} />
+        {/* UNUSED — Pricing uses static hardcoded data, not CMS */}
+        {/* <Route path="/pricing" element={<Pricing />} /> */}
 
         <Route path="/login" element={<Login />} />
 
-        <Route path="/student-register" element={<StudentRegister />} />
-
-        <Route path="/teacher-register" element={<TeacherRegister />} />
+        {/* UNUSED — StudentRegister and TeacherRegister have no backend */}
+        {/* <Route path="/student-register" element={<StudentRegister />} /> */}
+        {/* <Route path="/teacher-register" element={<TeacherRegister />} /> */}
 
         <Route path="/forgot-password" element={<ForgotPassword />} />
 

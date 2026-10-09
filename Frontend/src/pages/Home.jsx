@@ -39,9 +39,7 @@ function Home() {
 
         const current = heroSlides[currentSlide];
 
-        // Video apne end par next slide karega
-        if (current?.media_type === "video") return;
-
+        // No video type in current schema — always auto-advance
         const timer = setInterval(() => {
             setCurrentSlide((prev) =>
                 (prev + 1) % heroSlides.length
@@ -94,7 +92,7 @@ function Home() {
                         {heroSlides.map((slide, index) => {
 
                             const mediaUrl = getHeroMediaUrl(
-                                slide.media_path
+                                slide.image
                             );
 
                             return (
@@ -106,36 +104,14 @@ function Home() {
                                         }`}
                                 >
 
-                                    {slide.media_type === "video" ? (
-
-                                        <video
-                                            className="hero-media"
-                                            src={mediaUrl}
-                                            autoPlay={index === currentSlide}
-                                            muted
-                                            playsInline
-                                            preload="metadata"
-                                            onEnded={() => {
-                                                if (
-                                                    index === currentSlide
-                                                ) {
-                                                    nextSlide();
-                                                }
-                                            }}
-                                        />
-
-                                    ) : (
-
-                                        <img
-                                            className="hero-media"
-                                            src={mediaUrl}
-                                            alt={
-                                                slide.title ||
-                                                "DS Convent School"
-                                            }
-                                        />
-
-                                    )}
+                                    <img
+                                        className="hero-media"
+                                        src={mediaUrl}
+                                        alt={
+                                            slide.title ||
+                                            "DS Convent School"
+                                        }
+                                    />
 
                                 </div>
                             );

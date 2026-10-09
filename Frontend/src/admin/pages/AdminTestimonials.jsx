@@ -25,10 +25,10 @@ function AdminTestimonials() {
 
     const [formData, setFormData] = useState({
         name: "",
-        role: "",
+        designation: "",
         rating: 5,
-        review: "",
-        status: "approved",
+        message: "",
+        status: "active",
         sort_order: 0,
     });
 
@@ -83,10 +83,10 @@ function AdminTestimonials() {
     const resetForm = () => {
         setFormData({
             name: "",
-            role: "",
+            designation: "",
             rating: 5,
-            review: "",
-            status: "approved",
+            message: "",
+            status: "active",
             sort_order: 0,
         });
 
@@ -125,10 +125,10 @@ function AdminTestimonials() {
     const openEditForm = (testimonial) => {
         setFormData({
             name: testimonial.name || "",
-            role: testimonial.role || "",
+            designation: testimonial.designation || "",
             rating: testimonial.rating || 5,
-            review: testimonial.review || "",
-            status: testimonial.status || "pending",
+            message: testimonial.message || "",
+            status: testimonial.status || "active",
             sort_order: testimonial.sort_order ?? 0,
         });
 
@@ -137,9 +137,9 @@ function AdminTestimonials() {
         setAvatarFile(null);
 
         setAvatarPreview(
-            testimonial.avatar
+            testimonial.image
                 ? getAdminTestimonialAvatarUrl(
-                    testimonial.avatar
+                    testimonial.image
                 )
                 : ""
         );
@@ -262,8 +262,8 @@ function AdminTestimonials() {
             return;
         }
 
-        if (!formData.review.trim()) {
-            alert("Review is required.");
+        if (!formData.message.trim()) {
+            alert("Message is required.");
             return;
         }
 
@@ -283,12 +283,12 @@ function AdminTestimonials() {
             const payload = {
                 name: formData.name.trim(),
 
-                role:
-                    formData.role.trim() || null,
+                designation:
+                    formData.designation.trim() || null,
 
                 rating: rating,
 
-                review: formData.review.trim(),
+                message: formData.message.trim(),
 
                 status: formData.status,
 
@@ -414,28 +414,19 @@ function AdminTestimonials() {
     // ========================================
 
     const getStatusBadge = (status) => {
-        switch (status) {
-            case "approved":
-                return (
-                    <span className="badge bg-success">
-                        Approved
-                    </span>
-                );
-
-            case "rejected":
-                return (
-                    <span className="badge bg-danger">
-                        Rejected
-                    </span>
-                );
-
-            default:
-                return (
-                    <span className="badge bg-warning text-dark">
-                        Pending
-                    </span>
-                );
+        if (status === "active") {
+            return (
+                <span className="badge bg-success">
+                    Active
+                </span>
+            );
         }
+
+        return (
+            <span className="badge bg-secondary">
+                Inactive
+            </span>
+        );
     };
 
     // ========================================
@@ -615,7 +606,7 @@ function AdminTestimonials() {
 
                                             const avatarUrl =
                                                 getAdminTestimonialAvatarUrl(
-                                                    testimonial.avatar
+                                                    testimonial.image
                                                 );
 
                                             return (
@@ -678,7 +669,7 @@ function AdminTestimonials() {
 
                                                         <div className="small text-muted">
                                                             {
-                                                                testimonial.role ||
+                                                                testimonial.designation ||
                                                                 "-"
                                                             }
                                                         </div>
@@ -718,11 +709,11 @@ function AdminTestimonials() {
                                                         <div
                                                             className="text-truncate"
                                                             title={
-                                                                testimonial.review
+                                                                testimonial.message
                                                             }
                                                         >
                                                             {
-                                                                testimonial.review
+                                                                testimonial.message
                                                             }
                                                         </div>
 
@@ -922,16 +913,12 @@ function AdminTestimonials() {
                                                 }
                                             >
 
-                                                <option value="approved">
-                                                    Approved
+                                                <option value="active">
+                                                    Active
                                                 </option>
 
-                                                <option value="pending">
-                                                    Pending
-                                                </option>
-
-                                                <option value="rejected">
-                                                    Rejected
+                                                <option value="inactive">
+                                                    Inactive
                                                 </option>
 
                                             </select>
@@ -943,15 +930,15 @@ function AdminTestimonials() {
                                         <div className="col-md-8">
 
                                             <label className="form-label">
-                                                Role
+                                                Designation
                                             </label>
 
                                             <input
                                                 type="text"
-                                                name="role"
+                                                name="designation"
                                                 className="form-control"
                                                 value={
-                                                    formData.role
+                                                    formData.designation
                                                 }
                                                 onChange={
                                                     handleChange
@@ -1013,23 +1000,23 @@ function AdminTestimonials() {
                                         <div className="col-12">
 
                                             <label className="form-label">
-                                                Review
+                                                Message
                                                 <span className="text-danger">
                                                     {" "}*
                                                 </span>
                                             </label>
 
                                             <textarea
-                                                name="review"
+                                                name="message"
                                                 className="form-control"
                                                 rows="5"
                                                 value={
-                                                    formData.review
+                                                    formData.message
                                                 }
                                                 onChange={
                                                     handleChange
                                                 }
-                                                placeholder="Write testimonial / review..."
+                                                placeholder="Write testimonial message..."
                                                 required
                                             ></textarea>
 

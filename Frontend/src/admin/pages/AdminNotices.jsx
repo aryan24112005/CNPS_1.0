@@ -66,12 +66,17 @@ function AdminNotices() {
     };
 
     const generateSlug = (title) => {
-        return title
+        const base = title
             .toLowerCase()
             .trim()
             .replace(/[^a-z0-9\s-]/g, "")
             .replace(/\s+/g, "-")
             .replace(/-+/g, "-");
+
+        // Append short timestamp to guarantee uniqueness
+        const suffix = Date.now().toString(36);
+
+        return `${base}-${suffix}`;
     };
 
     const handleTitleChange = (e) => {

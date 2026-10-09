@@ -128,23 +128,15 @@ export const getPublicGalleryImages = async (req, res, next) => {
         const [images] = await pool.query(`
             SELECT
                 id,
-                image,
-                caption,
+                title,
+                description,
                 category,
-                status,
+                image,
                 sort_order,
                 created_at
             FROM gallery
             WHERE status = 'active'
-              AND category IN (
-                  'academic',
-                  'development',
-                  'campus'
-              )
-            ORDER BY
-                category ASC,
-                sort_order ASC,
-                id DESC
+            ORDER BY sort_order ASC, id DESC
         `);
 
         return res.status(200).json({

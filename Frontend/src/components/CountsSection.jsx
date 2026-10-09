@@ -79,7 +79,7 @@ function CountsSection() {
                                 <span
                                     className="purecounter"
                                     data-purecounter-start="0"
-                                    data-purecounter-end={stat.number_value}
+                                    data-purecounter-end={stat.value}
                                     data-purecounter-duration="1"
                                 >
                                     0

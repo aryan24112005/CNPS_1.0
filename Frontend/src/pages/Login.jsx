@@ -308,7 +308,8 @@ function Login() {
                 {/* Registration */}
                 <div className="login-register">
 
-                  <p>Don't have an account?</p>
+                  {/* Register links disabled — StudentRegister and TeacherRegister pages have no backend */}
+                  {/* <p>Don't have an account?</p>
 
                   <div className="register-buttons">
 
@@ -326,7 +327,7 @@ function Login() {
                       Teacher Register
                     </Link>
 
-                  </div>
+                  </div> */}
 
                 </div>
 

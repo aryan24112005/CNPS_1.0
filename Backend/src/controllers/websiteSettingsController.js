@@ -1,3 +1,17 @@
+/*
+|--------------------------------------------------------------------------
+| UNUSED — websiteSettingsController.js
+|--------------------------------------------------------------------------
+| This controller references columns (alternate_phone, alternate_email,
+| whatsapp_number, facebook_url, etc.) that do NOT exist in the actual
+| website_settings table. The frontend does not call /api/website-settings
+| anywhere. The full site settings are managed via /api/settings instead.
+|
+| Keeping this file commented out to preserve for future reference.
+|--------------------------------------------------------------------------
+*/
+
+/*
 import pool from "../config/db.js";
 
 export const getWebsiteSettings = async (req, res) => {
@@ -103,4 +117,20 @@ export const updateWebsiteSettings = async (req, res) => {
             message: "Internal server error",
         });
     }
+};
+*/
+
+// Stub exports so the route file doesn't crash on import
+export const getWebsiteSettings = async (req, res) => {
+    return res.status(410).json({
+        success: false,
+        message: "This endpoint is not in use. Use /api/settings instead.",
+    });
+};
+
+export const updateWebsiteSettings = async (req, res) => {
+    return res.status(410).json({
+        success: false,
+        message: "This endpoint is not in use. Use /api/settings instead.",
+    });
 };

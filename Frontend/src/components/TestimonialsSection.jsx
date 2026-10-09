@@ -139,11 +139,20 @@ function TestimonialsSection() {
                                     {/* Profile */}
                                     <div className="profile mt-auto">
 
-                                        <img
-                                            src={getAvatarUrl(testimonial.avatar)}
-                                            className="testimonial-img"
-                                            alt={testimonial.name}
-                                        />
+                                        {getAvatarUrl(testimonial.image) ? (
+                                            <img
+                                                src={getAvatarUrl(testimonial.image)}
+                                                className="testimonial-img"
+                                                alt={testimonial.name}
+                                            />
+                                        ) : (
+                                            <div
+                                                className="testimonial-img d-flex align-items-center justify-content-center bg-light rounded-circle"
+                                                style={{ width: "60px", height: "60px", flexShrink: 0 }}
+                                            >
+                                                <i className="bi bi-person-fill text-muted" style={{ fontSize: "28px" }}></i>
+                                            </div>
+                                        )}
 
                                         <div>
                                             <h3>
@@ -151,7 +160,7 @@ function TestimonialsSection() {
                                             </h3>
 
                                             <h4>
-                                                {testimonial.role ||
+                                                {testimonial.designation ||
                                                     "Parent"}
                                             </h4>
                                         </div>
@@ -179,7 +188,7 @@ function TestimonialsSection() {
 
                                     {/* Review */}
                                     <p>
-                                        {testimonial.review}
+                                        {testimonial.message}
                                     </p>
 
                                 </div>

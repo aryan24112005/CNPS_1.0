@@ -51,7 +51,7 @@ function AdminHomepage() {
 
     const [countFormData, setCountFormData] = useState({
         type: "students",
-        number_value: 0,
+        value: 0,
     });
 
     /* ----------------------------------------
@@ -295,7 +295,7 @@ function AdminHomepage() {
 
         setCountFormData({
             type: "students",
-            number_value: 0,
+            value: 0,
         });
 
         setShowCountForm(true);
@@ -318,7 +318,7 @@ function AdminHomepage() {
 
             setCountFormData({
                 type: typeMap[count.label] || "students",
-                number_value: count.number_value ?? 0,
+                value: count.value ?? 0,
             });
 
             setShowCountForm(true);
@@ -344,7 +344,7 @@ function AdminHomepage() {
 
         setCountFormData({
             type: "students",
-            number_value: 0,
+            value: 0,
         });
     };
 
@@ -363,9 +363,7 @@ function AdminHomepage() {
             setCountSaving(true);
 
             const payload = {
-                number_value: Number(
-                    countFormData.number_value
-                ),
+                value: String(countFormData.value),
                 label: countLabels[countFormData.type],
                 icon:
                     countFormData.type === "students"
@@ -588,26 +586,16 @@ function AdminHomepage() {
         mediaPath,
         className = ""
     ) => {
-        const mediaUrl =
-            getAdminHeroMediaUrl(mediaPath);
-
-        if (mediaType === "video") {
-            return (
-                <video
-                    src={mediaUrl}
-                    className={className}
-                    muted
-                    controls
-                    preload="metadata"
-                />
-            );
-        }
+        // Support both old (mediaType + mediaPath) and new (image) API shape
+        const resolvedPath = mediaPath || mediaType; // when called with (slide.image, className)
+        const mediaUrl = getAdminHeroMediaUrl(resolvedPath);
 
         return (
             <img
                 src={mediaUrl}
                 className={className}
                 alt="Hero"
+                style={{ objectFit: "cover", width: "100%", height: "100%" }}
             />
         );
     };
@@ -795,8 +783,8 @@ function AdminHomepage() {
                                                             }}
                                                         >
                                                             {renderMedia(
-                                                                slide.media_type,
-                                                                slide.media_path,
+                                                                slide.image,
+                                                                null,
                                                                 "w-100 h-100"
                                                             )}
                                                         </div>
@@ -831,18 +819,10 @@ function AdminHomepage() {
                                                     {/* TYPE */}
 
                                                     <td>
-                                                        {slide.media_type ===
-                                                            "video" ? (
-                                                            <span className="badge bg-dark">
-                                                                <i className="bi bi-camera-video me-1"></i>
-                                                                Video
-                                                            </span>
-                                                        ) : (
-                                                            <span className="badge bg-secondary">
-                                                                <i className="bi bi-image me-1"></i>
-                                                                Image
-                                                            </span>
-                                                        )}
+                                                        <span className="badge bg-secondary">
+                                                            <i className="bi bi-image me-1"></i>
+                                                            Image
+                                                        </span>
                                                     </td>
 
                                                     {/* STATUS */}
@@ -1059,7 +1039,7 @@ function AdminHomepage() {
                                             <td>
 
                                                 <strong>
-                                                    {count.number_value}
+                                                    {count.value}
                                                 </strong>
 
                                             </td>
@@ -1370,8 +1350,8 @@ function AdminHomepage() {
                                                             }}
                                                         >
                                                             {renderMedia(
-                                                                currentSlide.media_type,
-                                                                currentSlide.media_path,
+                                                                currentSlide.image,
+                                                                null,
                                                                 "w-100 h-100"
                                                             )}
                                                         </div>
@@ -1683,10 +1663,10 @@ function AdminHomepage() {
 
                                         <input
                                             type="number"
-                                            name="number_value"
+                                            name="value"
                                             className="form-control"
                                             value={
-                                                countFormData.number_value
+                                                countFormData.value
                                             }
                                             onChange={
                                                 handleCountChange
