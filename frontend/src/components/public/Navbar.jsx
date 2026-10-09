@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { NavLink, Link } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import { NavLink, Link, useLocation } from "react-router-dom";
 import cnpsLogo from "../../assets/cnps-logo.png";
 
 const NAV_LINKS = [
@@ -16,37 +16,56 @@ const NAV_LINKS = [
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled,   setScrolled]   = useState(false);
+  const location = useLocation();
 
-  /* Scrolled shadow */
+  /* ── Scrolled shadow ── */
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  /* Auto-close on resize to desktop */
+  /* ── Auto-close on resize to desktop ── */
   useEffect(() => {
-    const onResize = () => { if (window.innerWidth > 860) setMobileOpen(false); };
+    const onResize = () => {
+      if (window.innerWidth > 1100) setMobileOpen(false);
+    };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  /* Lock body scroll when mobile menu open */
+  /* ── Auto-close on route change ── */
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
+  /* ── Escape key closes menu ── */
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e) => { if (e.key === "Escape") setMobileOpen(false); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [mobileOpen]);
+
+  /* ── Lock body scroll when menu open ── */
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [mobileOpen]);
 
-  const close = () => setMobileOpen(false);
+  const close = useCallback(() => setMobileOpen(false), []);
+  const toggle = useCallback(() => setMobileOpen((p) => !p), []);
 
   return (
     <>
+      {/* ── Navbar bar ── */}
       <header
         className="navbar"
         style={{ boxShadow: scrolled ? "var(--shadow-md)" : "var(--shadow-sm)" }}
       >
         <div className="navbar-inner">
-          {/* Brand */}
+
+          {/* Brand — logo + school name */}
           <Link to="/" className="navbar-brand" onClick={close}>
             <div className="navbar-brand-icon">
               <img src={cnpsLogo} alt="CNPS Logo" />
@@ -59,8 +78,8 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* Desktop nav */}
-          <ul className="navbar-nav" role="menubar">
+          {/* Desktop nav links — hidden below 1100px */}
+          <ul className="navbar-nav" role="menubar" aria-label="Main navigation">
             {NAV_LINKS.map((link) => (
               <li key={link.to} role="none">
                 <NavLink
@@ -75,9 +94,13 @@ export default function Navbar() {
             ))}
           </ul>
 
-          {/* Desktop CTA */}
-          <div className="navbar-cta" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <Link to="/login" className="btn btn-outline btn-sm" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          {/* Desktop CTA — hidden below 1100px */}
+          <div className="navbar-cta">
+            <Link
+              to="/login"
+              className="btn btn-outline btn-sm"
+              style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+            >
               <i className="bi bi-person-circle" aria-hidden="true" />
               Login
             </Link>
@@ -86,10 +109,10 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* Mobile toggle */}
+          {/* Hamburger — visible below 1100px */}
           <button
             className="navbar-toggle"
-            onClick={() => setMobileOpen((p) => !p)}
+            onClick={toggle}
             aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
             aria-expanded={mobileOpen}
             aria-controls="mobile-nav"
@@ -100,7 +123,7 @@ export default function Navbar() {
         </div>
       </header>
 
-      {/* Backdrop — sits below mobile nav, above page content */}
+      {/* ── Backdrop overlay ── */}
       {mobileOpen && (
         <div
           onClick={close}
@@ -116,13 +139,12 @@ export default function Navbar() {
         />
       )}
 
-      {/* Mobile nav */}
+      {/* ── Mobile navigation panel ── */}
       <nav
         id="mobile-nav"
         className={`mobile-nav${mobileOpen ? " open" : ""}`}
         aria-label="Mobile navigation"
         aria-hidden={!mobileOpen}
-        inert={!mobileOpen ? "" : undefined}
       >
         {NAV_LINKS.map((link) => (
           <NavLink
@@ -136,12 +158,12 @@ export default function Navbar() {
           </NavLink>
         ))}
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
+        {/* CTA buttons at the bottom of the mobile menu */}
+        <div className="mobile-nav-cta">
           <Link
             to="/admission"
             className="btn btn-primary"
             onClick={close}
-            style={{ justifyContent: "center" }}
           >
             <i className="bi bi-pencil-square" aria-hidden="true" />
             Apply for Admission
@@ -150,7 +172,6 @@ export default function Navbar() {
             to="/login"
             className="btn btn-outline"
             onClick={close}
-            style={{ justifyContent: "center" }}
           >
             <i className="bi bi-person-circle" aria-hidden="true" />
             Admin Login
