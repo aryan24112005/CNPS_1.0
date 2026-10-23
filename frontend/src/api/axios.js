@@ -5,7 +5,7 @@ import axios from "axios";
 // In local dev: set VITE_API_URL in .env to http://localhost:5000/api
 const API_BASE_URL = (
   import.meta.env.VITE_API_URL || 
-  "https://cnps-ouwq.onrender.com"
+  "https://cnps-ouwq.onrender.com/api"
 ).replace(/\/+$/, ""); // Remove trailing slashes
 
 const api = axios.create({ baseURL: API_BASE_URL });

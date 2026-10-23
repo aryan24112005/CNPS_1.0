@@ -6,10 +6,10 @@ export default function Footer() {
   const [settings, setSettings] = useState(null);
 
   useEffect(() => {
-    getSiteSettings().then(setSettings).catch(() => {});
+    getSiteSettings().then(setSettings).catch(() => { });
   }, []);
 
-  const s    = settings || {};
+  const s = settings || {};
   const year = new Date().getFullYear();
 
   return (
@@ -33,11 +33,11 @@ export default function Footer() {
               {s.footerAbout || "Providing quality education and holistic development to students. Building tomorrow's leaders today."}
             </p>
             <div className="footer-social">
-              {s.socialLinks?.facebook  && <a href={s.socialLinks.facebook}  target="_blank" rel="noreferrer" aria-label="Facebook"><i className="bi bi-facebook" /></a>}
+              {s.socialLinks?.facebook && <a href={s.socialLinks.facebook} target="_blank" rel="noreferrer" aria-label="Facebook"><i className="bi bi-facebook" /></a>}
               {s.socialLinks?.instagram && <a href={s.socialLinks.instagram} target="_blank" rel="noreferrer" aria-label="Instagram"><i className="bi bi-instagram" /></a>}
-              {s.socialLinks?.youtube   && <a href={s.socialLinks.youtube}   target="_blank" rel="noreferrer" aria-label="YouTube"><i className="bi bi-youtube" /></a>}
-              {s.socialLinks?.twitter   && <a href={s.socialLinks.twitter}   target="_blank" rel="noreferrer" aria-label="Twitter/X"><i className="bi bi-twitter-x" /></a>}
-              {s.socialLinks?.linkedin  && <a href={s.socialLinks.linkedin}  target="_blank" rel="noreferrer" aria-label="LinkedIn"><i className="bi bi-linkedin" /></a>}
+              {s.socialLinks?.youtube && <a href={s.socialLinks.youtube} target="_blank" rel="noreferrer" aria-label="YouTube"><i className="bi bi-youtube" /></a>}
+              {s.socialLinks?.twitter && <a href={s.socialLinks.twitter} target="_blank" rel="noreferrer" aria-label="Twitter/X"><i className="bi bi-twitter-x" /></a>}
+              {s.socialLinks?.linkedin && <a href={s.socialLinks.linkedin} target="_blank" rel="noreferrer" aria-label="LinkedIn"><i className="bi bi-linkedin" /></a>}
             </div>
           </div>
 
@@ -46,12 +46,12 @@ export default function Footer() {
             <h4>Quick Links</h4>
             <ul>
               {[
-                ["/",          "Home"       ],
-                ["/about",     "About Us"   ],
-                ["/courses",   "Courses"    ],
-                ["/trainers",  "Faculty"    ],
-                ["/events",    "Events"     ],
-                ["/admission", "Admission"  ],
+                ["/", "Home"],
+                ["/about", "About Us"],
+                ["/courses", "Courses"],
+                ["/trainers", "Faculty"],
+                ["/events", "Events"],
+                ["/admission", "Admission"],
               ].map(([to, label]) => (
                 <li key={to}>
                   <Link to={to}>
@@ -67,10 +67,12 @@ export default function Footer() {
             <h4>Information</h4>
             <ul>
               {[
-                ["/notices", "Notices"    ],
-                ["/gallery", "Gallery"    ],
-                ["/contact", "Contact Us" ],
-                ["/login",   "Admin Login"],
+                ["/notices", "Notices"],
+                ["/gallery", "Gallery"],
+                ["/contact", "Contact Us"],
+                ["/terms-and-conditions", "Terms & Conditions"],
+                ["/privacy-policy", "Privacy Policy"],
+                ["/login", "Admin Login"],
               ].map(([to, label]) => (
                 <li key={to}>
                   <Link to={to}>
@@ -112,9 +114,29 @@ export default function Footer() {
           <span>
             {s.footerCopyright || `© ${year} ${s.schoolName || "CNPS Public School"}. All rights reserved.`}
           </span>
-          <span>
-            Designed with <i className="bi bi-heart-fill" style={{ color: "var(--gold)", fontSize: "0.75rem" }} aria-hidden="true" /> for education
+          <span  style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+            <Link to="/terms-and-conditions" style={{ color: "rgba(255,255,255,0.55)", fontSize: "0.8rem" }}>Terms &amp; Conditions</Link>
+            <Link to="/privacy-policy" style={{ color: "rgba(255,255,255,0.55)", fontSize: "0.8rem" }}>Privacy Policy</Link>
           </span>
+
+          <span>
+            Designed by{" "}
+            <a
+              href="https://www.linkedin.com/in/alok-kumar-8a64563a5"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                color: "inherit",
+                textDecoration: "none",
+                fontWeight: 600,
+              }}
+              aria-label="Alok Kumar on LinkedIn"
+            >
+              Alok Kumar
+            </a>
+          </span>
+
+
         </div>
       </div>
     </footer>

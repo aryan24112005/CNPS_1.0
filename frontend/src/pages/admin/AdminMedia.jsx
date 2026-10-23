@@ -156,15 +156,24 @@ export default function AdminMedia() {
   const [lightbox, setLightbox] = useState(null); // { src, name }
   const [confirm, setConfirm] = useState(null);
   const [toast, setToast] = useState(null);
+  // FIX: add pagination state — backend limits to 30 per page
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const fileRef = useRef();
 
   const showToast = (msg, type = "info") => setToast({ msg, type });
 
-  const load = async () => {
+  const load = async (p = 1) => {
     setLoading(true);
     try {
-      const data = await getMedia();
+      // FIX: pass page param so backend paginates correctly
+      const data = await getMedia({ page: p, limit: 30 });
+      // data shape: { data: [...], total, page, totalPages }
       setAllItems(safeArray(data));
+      setTotal(data.total ?? 0);
+      setTotalPages(data.totalPages ?? 1);
+      setPage(p);
     } catch {
       showToast("Failed to load media", "error");
     } finally {
@@ -172,7 +181,7 @@ export default function AdminMedia() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(1); }, []);
 
   const handleUpload = async (e) => {
     const files = Array.from(e.target.files);
@@ -185,7 +194,7 @@ export default function AdminMedia() {
         await uploadMedia(fd);
       }
       showToast(`${files.length} file(s) uploaded`, "success");
-      load();
+      load(1);
     } catch (err) {
       showToast(err?.response?.data?.message || "Upload failed", "error");
     } finally {
@@ -202,7 +211,7 @@ export default function AdminMedia() {
         try {
           await deleteMedia(item._id);
           showToast("File deleted", "success");
-          load();
+          load(page);
         } catch {
           showToast("Delete failed", "error");
         }
@@ -260,7 +269,8 @@ export default function AdminMedia() {
       {/* Stats bar */}
       {!loading && (
         <div style={{ marginBottom: 16, fontSize: "0.85rem", color: "var(--text-muted)" }}>
-          {filtered.length} file{filtered.length !== 1 ? "s" : ""}{search ? ` matching "${search}"` : " total"}
+          {total} file{total !== 1 ? "s" : ""} total
+          {search ? ` · showing local filter results` : ` · page ${page} of ${totalPages}`}
         </div>
       )}
 
@@ -316,6 +326,37 @@ export default function AdminMedia() {
       {lightbox && <Lightbox src={lightbox.src} name={lightbox.name} onClose={() => setLightbox(null)} />}
       {confirm && <ConfirmDialog message={confirm.message} onConfirm={confirm.onConfirm} onCancel={() => setConfirm(null)} />}
       {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
+
+      {/* Pagination */}
+      {!loading && totalPages > 1 && !search && (
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, marginTop: 24 }}>
+          <button
+            onClick={() => load(page - 1)}
+            disabled={page <= 1}
+            style={{
+              padding: "7px 14px", border: "1.5px solid var(--border)", borderRadius: "var(--radius-sm)",
+              background: page <= 1 ? "var(--bg-section)" : "#fff", cursor: page <= 1 ? "default" : "pointer",
+              color: page <= 1 ? "var(--text-muted)" : "var(--navy)", fontWeight: 600,
+            }}
+          >
+            <i className="bi bi-chevron-left" />
+          </button>
+          <span style={{ fontSize: "0.9rem", color: "var(--text-secondary)", padding: "0 8px" }}>
+            Page {page} of {totalPages}
+          </span>
+          <button
+            onClick={() => load(page + 1)}
+            disabled={page >= totalPages}
+            style={{
+              padding: "7px 14px", border: "1.5px solid var(--border)", borderRadius: "var(--radius-sm)",
+              background: page >= totalPages ? "var(--bg-section)" : "#fff", cursor: page >= totalPages ? "default" : "pointer",
+              color: page >= totalPages ? "var(--text-muted)" : "var(--navy)", fontWeight: 600,
+            }}
+          >
+            <i className="bi bi-chevron-right" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

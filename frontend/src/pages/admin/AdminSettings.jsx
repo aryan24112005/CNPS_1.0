@@ -164,6 +164,57 @@ function ImageField({ label, currentUrl, onUpload, onRemove, uploading, hint }) 
 }
 
 /* ─────────────────────────────────────────────────────────────
+   Add button for About gallery (uploads to /api/settings/about-image/new)
+───────────────────────────────────────────────────────────── */
+function AboutGalleryAddButton({ onAdded, addToast }) {
+  const fileRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handle = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    setUploading(true);
+    try {
+      for (const file of files) {
+        const fd = new FormData();
+        fd.append("image", file);
+        const res = await uploadAboutImage("new", fd);
+        const url = res?.data?.url || res?.url || "";
+        const index = res?.data?.index ?? -1;
+        if (url) onAdded(url, index);
+      }
+      addToast(`${files.length} image(s) added`);
+    } catch (err) {
+      addToast(err?.response?.data?.message || "Upload failed", "error");
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  return (
+    <div>
+      <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={handle} />
+      <button
+        type="button"
+        onClick={() => fileRef.current?.click()}
+        disabled={uploading}
+        style={{
+          padding: "7px 14px", background: "var(--primary)", color: "#fff", border: "none",
+          borderRadius: 7, cursor: uploading ? "default" : "pointer",
+          fontSize: "0.83rem", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6,
+        }}
+      >
+        {uploading
+          ? <><i className="bi bi-arrow-repeat" />Uploading…</>
+          : <><i className="bi bi-plus-lg" />Add Image(s)</>
+        }
+      </button>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────
    Tabs config
 ───────────────────────────────────────────────────────────── */
 const TABS = [
@@ -208,6 +259,8 @@ function apiToUi(data) {
     aboutImage1:      data.aboutImage1?.url || data.aboutImage1 || "",
     aboutImage2:      data.aboutImage2?.url || data.aboutImage2 || "",
     aboutImage3:      data.aboutImage3?.url || data.aboutImage3 || "",
+    // Extended gallery array (supersedes aboutImage1/2/3 when present)
+    aboutImages:      Array.isArray(data.aboutImages) ? data.aboutImages : [],
   };
 }
 
@@ -528,23 +581,63 @@ export default function AdminSettings() {
             </div>
 
             <hr style={{ border: "none", borderTop: "1px solid var(--border)", margin: "12px 0 20px" }} />
-            <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text-secondary)", marginBottom: 16 }}>About Page Gallery Images</p>
-
-            {[
-              { field: "aboutImage1", label: "About Gallery Image 1" },
-              { field: "aboutImage2", label: "About Gallery Image 2" },
-              { field: "aboutImage3", label: "About Gallery Image 3" },
-            ].map(({ field, label }) => (
-              <ImageField
-                key={field}
-                label={label}
-                currentUrl={settings[field]}
-                onUpload={(file) => handleAboutImageUpload(field, file)}
-                onRemove={() => handleAboutImageRemove(field)}
-                uploading={uploading[field]}
-                hint="JPG, PNG, WebP. Will be shown in the About page image gallery."
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text-secondary)", margin: 0 }}>
+                About Page Gallery Images
+                <span style={{ fontWeight: 400, color: "var(--text-muted)", marginLeft: 8, fontSize: "0.82rem" }}>
+                  ({settings.aboutImages ? settings.aboutImages.length : 0}/20)
+                </span>
+              </p>
+              <AboutGalleryAddButton
+                onAdded={(url, index) => setSettings(p => ({
+                  ...p,
+                  aboutImages: [...(p.aboutImages || []), { url, index }]
+                }))}
+                addToast={addToast}
               />
-            ))}
+            </div>
+
+            {/* Render all gallery images from aboutImages array */}
+            {settings.aboutImages && settings.aboutImages.length > 0 ? (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 14, marginBottom: 20 }}>
+                {settings.aboutImages.map((img, idx) => {
+                  const url = img.url || img;
+                  return (
+                    <div key={idx} style={{ position: "relative", borderRadius: 10, overflow: "hidden", border: "1px solid var(--border)", background: "var(--bg-section)" }}>
+                      <img src={url} alt={`About ${idx + 1}`} style={{ width: "100%", height: 130, objectFit: "cover", display: "block" }} onError={e => { e.target.style.display = "none"; }} />
+                      <div style={{ padding: "6px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Image {idx + 1}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleAboutImageRemove(`idx_${idx}`)}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--danger)", fontSize: "0.85rem", padding: "2px 4px" }}
+                          title="Remove image"
+                        >
+                          <i className="bi bi-trash3" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              // Fallback: show legacy aboutImage1/2/3 fields if no aboutImages array yet
+              [
+                { field: "aboutImage1", label: "About Gallery Image 1" },
+                { field: "aboutImage2", label: "About Gallery Image 2" },
+                { field: "aboutImage3", label: "About Gallery Image 3" },
+              ].map(({ field, label }) => (
+                <ImageField
+                  key={field}
+                  label={label}
+                  currentUrl={settings[field]}
+                  onUpload={(file) => handleAboutImageUpload(field, file)}
+                  onRemove={() => handleAboutImageRemove(field)}
+                  uploading={uploading[field]}
+                  hint="JPG, PNG, WebP. Will be shown in the About page image gallery."
+                />
+              ))
+            )}
             <SaveButton onClick={handleSave} saving={saving} />
           </div>
         )}

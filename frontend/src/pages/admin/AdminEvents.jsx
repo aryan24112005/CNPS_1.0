@@ -272,11 +272,13 @@ function EventModal({ event, onClose, onSaved, addToast }) {
       ? {
           title: event.title || "",
           description: event.description || "",
-          date: event.date ? event.date.slice(0, 10) : "",
+          // FIX: backend field is eventDate, not date
+          eventDate: event.eventDate ? new Date(event.eventDate).toISOString().slice(0, 10) : "",
           location: event.location || "",
-          isActive: event.isActive !== false,
+          // FIX: backend uses status enum "active"/"inactive", not isActive boolean
+          status: event.status || "active",
         }
-      : { title: "", description: "", date: "", location: "", isActive: true }
+      : { title: "", description: "", eventDate: "", location: "", status: "active" }
   );
   const [saving, setSaving] = useState(false);
   const [savedId, setSavedId] = useState(event?._id || null);
@@ -284,6 +286,8 @@ function EventModal({ event, onClose, onSaved, addToast }) {
   const coverRef = useRef();
   const [uploadingCover, setUploadingCover] = useState(false);
   const [coverFile, setCoverFile] = useState(null);
+  // FIX: show existing cover image in the modal when editing
+  const [coverPreview, setCoverPreview] = useState(event?.coverImage?.url || null);
 
   function set(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -332,7 +336,6 @@ function EventModal({ event, onClose, onSaved, addToast }) {
       setUploadingCover(false);
     }
   }
-
   async function refreshGallery() {
     onSaved();
     // Attempt to reload gallery for this event
@@ -387,7 +390,8 @@ function EventModal({ event, onClose, onSaved, addToast }) {
             <div className="modal-form-grid">
               <div style={groupStyle}>
                 <label style={labelStyle}>Event Date</label>
-                <input type="date" style={inputStyle} value={form.date} onChange={(e) => set("date", e.target.value)} />
+                {/* FIX: field was date, backend uses eventDate */}
+                <input type="date" style={inputStyle} value={form.eventDate} onChange={(e) => set("eventDate", e.target.value)} />
               </div>
               <div style={groupStyle}>
                 <label style={labelStyle}>Location</label>
@@ -402,18 +406,19 @@ function EventModal({ event, onClose, onSaved, addToast }) {
             {/* Status */}
             <div style={{ ...groupStyle, display: "flex", alignItems: "center", gap: 12 }}>
               <label style={{ ...labelStyle, marginBottom: 0 }}>Status</label>
+              {/* FIX: toggle between "active"/"inactive" strings */}
               <div
-                onClick={() => set("isActive", !form.isActive)}
+                onClick={() => set("status", form.status === "active" ? "inactive" : "active")}
                 style={{
                   width: 44, height: 24, borderRadius: 999,
-                  background: form.isActive ? "var(--primary)" : "var(--border)",
+                  background: form.status === "active" ? "var(--primary)" : "var(--border)",
                   position: "relative", cursor: "pointer", transition: "background 0.2s",
                 }}
               >
                 <div
                   style={{
                     position: "absolute", top: 3,
-                    left: form.isActive ? 22 : 3,
+                    left: form.status === "active" ? 22 : 3,
                     width: 18, height: 18, borderRadius: "50%",
                     background: "#fff", transition: "left 0.2s",
                     boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
@@ -421,7 +426,7 @@ function EventModal({ event, onClose, onSaved, addToast }) {
                 />
               </div>
               <span style={{ fontSize: "0.9rem", color: "var(--text-secondary)" }}>
-                {form.isActive ? "Active" : "Inactive"}
+                {form.status === "active" ? "Active" : "Inactive"}
               </span>
             </div>
 
@@ -440,17 +445,29 @@ function EventModal({ event, onClose, onSaved, addToast }) {
                   <i className="bi bi-image" style={{ marginRight: 6 }} />
                   Cover Image
                 </div>
+                {/* FIX: show existing or newly selected cover preview */}
+                {coverPreview && (
+                  <img
+                    src={coverPreview}
+                    alt="Cover"
+                    style={{ width: "100%", maxHeight: 120, objectFit: "cover", borderRadius: "var(--radius-sm)", marginBottom: 10 }}
+                  />
+                )}
                 <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                   <input
                     type="file"
                     accept="image/*"
                     ref={coverRef}
                     style={{ display: "none" }}
-                    onChange={(e) => setCoverFile(e.target.files[0] || null)}
+                    onChange={(e) => {
+                      const file = e.target.files[0] || null;
+                      setCoverFile(file);
+                      if (file) setCoverPreview(URL.createObjectURL(file));
+                    }}
                   />
                   <button type="button" className="btn btn-outline" style={{ fontSize: "0.82rem" }} onClick={() => coverRef.current?.click()}>
                     <i className="bi bi-image" style={{ marginRight: 5 }} />
-                    Choose Cover
+                    {coverPreview ? "Change Cover" : "Choose Cover"}
                   </button>
                   {coverFile && (
                     <>
@@ -647,9 +664,10 @@ export default function AdminEvents() {
                     onMouseLeave={(e) => (e.currentTarget.style.background = "")}
                   >
                     <td style={tdStyle}>
-                      {ev.coverImage || ev.cover ? (
+                      {/* FIX: ev.coverImage is {url, publicId} object, not a plain URL */}
+                      {ev.coverImage?.url ? (
                         <img
-                          src={ev.coverImage || ev.cover}
+                          src={ev.coverImage.url}
                           alt={ev.title}
                           style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 6, display: "block" }}
                         />
@@ -664,9 +682,11 @@ export default function AdminEvents() {
                       {ev.location && <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{ev.location}</div>}
                     </td>
                     <td style={{ ...tdStyle, color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
-                      {formatDate(ev.date)}
+                      {/* FIX: backend field is eventDate, not date */}
+                      {formatDate(ev.eventDate)}
                     </td>
-                    <td style={tdStyle}><StatusBadge active={ev.isActive !== false} /></td>
+                    {/* FIX: backend uses status enum, not isActive boolean */}
+                    <td style={tdStyle}><StatusBadge active={ev.status === "active"} /></td>
                     <td style={{ ...tdStyle, textAlign: "right" }}>
                       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                         <button

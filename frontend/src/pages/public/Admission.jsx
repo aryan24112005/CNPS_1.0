@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { submitAdmission } from "../../services/publicService";
 
 const CLASS_OPTIONS = [
@@ -26,6 +27,7 @@ const CLASS_OPTIONS = [
 const EMPTY_FORM = {
   studentName: "", dob: "", gender: "", classChoice: "",
   fatherName: "", motherName: "", mobile: "", email: "", address: "",
+  consentAccepted: false,
 };
 
 export default function Admission() {
@@ -42,12 +44,14 @@ export default function Admission() {
     if (!form.classChoice)        e.classChoice = "Please select a class.";
     if (!form.mobile.trim())      e.mobile      = "Mobile number is required.";
     if (!form.address.trim())     e.address     = "Address is required.";
+    if (!form.consentAccepted)    e.consentAccepted = "You must accept the Terms & Conditions and Privacy Policy.";
     return e;
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((f) => ({ ...f, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    const newValue = type === "checkbox" ? checked : value;
+    setForm((f) => ({ ...f, [name]: newValue }));
     if (errors[name]) setErrors((err) => ({ ...err, [name]: "" }));
     setServerError("");
   };
@@ -59,17 +63,18 @@ export default function Admission() {
 
     const opt = CLASS_OPTIONS[Number(form.classChoice)];
     const payload = {
-      studentName:  form.studentName.trim(),
-      dob:          form.dob,
-      gender:       form.gender,
-      className:    opt.value,
-      stream:       opt.stream       || "",
-      scienceGroup: opt.scienceGroup || "",
-      fatherName:   form.fatherName.trim(),
-      motherName:   form.motherName.trim(),
-      mobile:       form.mobile.trim(),
-      email:        form.email.trim(),
-      address:      form.address.trim(),
+      studentName:     form.studentName.trim(),
+      dob:             form.dob,
+      gender:          form.gender,
+      className:       opt.value,
+      stream:          opt.stream       || "",
+      scienceGroup:    opt.scienceGroup || "",
+      fatherName:      form.fatherName.trim(),
+      motherName:      form.motherName.trim(),
+      mobile:          form.mobile.trim(),
+      email:           form.email.trim(),
+      address:         form.address.trim(),
+      consentAccepted: true,
     };
 
     setSubmitting(true);
@@ -290,6 +295,69 @@ export default function Admission() {
                       {serverError}
                     </div>
                   )}
+
+                  {/* ── Policy consent ─────────────────────── */}
+                  <div style={{ marginBottom: 24 }}>
+                    <label
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 12,
+                        cursor: "pointer",
+                        padding: "14px 16px",
+                        borderRadius: "var(--radius-md)",
+                        border: `1.5px solid ${errors.consentAccepted ? "var(--danger)" : form.consentAccepted ? "var(--primary)" : "var(--border)"}`,
+                        background: form.consentAccepted ? "var(--bg-soft-blue)" : "#fff",
+                        transition: "border-color 0.2s, background 0.2s",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        name="consentAccepted"
+                        checked={form.consentAccepted}
+                        onChange={handleChange}
+                        style={{
+                          width: 18,
+                          height: 18,
+                          marginTop: 2,
+                          accentColor: "var(--primary)",
+                          flexShrink: 0,
+                          cursor: "pointer",
+                        }}
+                      />
+                      <span style={{ fontSize: "0.88rem", color: "var(--text-secondary)", lineHeight: 1.6 }}>
+                        I have read and agree to the{" "}
+                        <Link
+                          to="/terms-and-conditions"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: "var(--primary)", fontWeight: 600 }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Terms &amp; Conditions
+                        </Link>{" "}
+                        and{" "}
+                        <Link
+                          to="/privacy-policy"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: "var(--primary)", fontWeight: 600 }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Privacy Policy
+                        </Link>
+                        . I consent to CNPS Public School recording and using the information I provide
+                        to process my admission enquiry.{" "}
+                        <span style={{ color: "var(--danger)" }}>*</span>
+                      </span>
+                    </label>
+                    {errors.consentAccepted && (
+                      <div style={{ fontSize: "0.78rem", color: "var(--danger)", marginTop: 6, marginLeft: 2 }}>
+                        <i className="bi bi-exclamation-circle" style={{ marginRight: 4 }} />
+                        {errors.consentAccepted}
+                      </div>
+                    )}
+                  </div>
 
                   <button
                     type="submit"

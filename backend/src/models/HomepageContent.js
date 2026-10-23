@@ -2,7 +2,9 @@
 const mongoose = require("mongoose");
 
 const countStatSchema = new mongoose.Schema({
-  icon:      { type: String, default: "bi-people" },
+  // category is the source of truth; icon is derived from category for display
+  category:  { type: String, enum: ["Students", "Events", "Faculty", "Courses", ""], default: "" },
+  icon:      { type: String, default: "bi-people-fill" },
   value:     { type: Number, default: 0 },
   label:     { type: String, trim: true, default: "" },
   suffix:    { type: String, trim: true, default: "+" },

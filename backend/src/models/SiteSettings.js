@@ -44,6 +44,14 @@ const siteSettingsSchema = new mongoose.Schema(
     aboutImage1: { url: { type: String, default: "" }, publicId: { type: String, default: "" } },
     aboutImage2: { url: { type: String, default: "" }, publicId: { type: String, default: "" } },
     aboutImage3: { url: { type: String, default: "" }, publicId: { type: String, default: "" } },
+    // Extended gallery: supports any number of about-page images.
+    // aboutImages supersedes aboutImage1/2/3 when populated.
+    // Maximum 20 images for performance.
+    aboutImages: [{
+      url:      { type: String, default: "" },
+      publicId: { type: String, default: "" },
+      _id: false,
+    }],
   },
   { timestamps: true }
 );

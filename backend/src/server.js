@@ -6,11 +6,7 @@ const cors         = require("cors");
 const helmet       = require("helmet");
 const morgan       = require("morgan");
 const rateLimit    = require("express-rate-limit");
-const connectDB    = require("./config/db");
 const { errorHandler } = require("./middleware/errorHandler");
-
-// Initialise Cloudinary config at startup — validates env vars early
-require("./config/cloudinary");
 
 const app = express();
 
@@ -24,20 +20,14 @@ app.use(helmet({
 }));
 
 // ── CORS ─────────────────────────────────────────────────────
-// FRONTEND_URL accepts a comma-separated list of allowed origins.
-// The production Netlify frontend is always included as a hardcoded safe default.
-// For local dev, set FRONTEND_URL=http://localhost:5173 in backend/.env
 const allowedOrigins = [
-  // Always allow the production Netlify frontend
   "https://cnpspublicschool.netlify.app",
-  // Also allow any origins configured via environment variable (supports comma-separated list)
   ...(process.env.FRONTEND_URL || "http://localhost:5173")
     .split(",").map((s) => s.trim()).filter(Boolean),
-].filter((v, i, arr) => arr.indexOf(v) === i); // deduplicate
+].filter((v, i, arr) => arr.indexOf(v) === i);
 
 app.use(cors({
   origin(origin, callback) {
-    // Allow requests with no origin (e.g. curl, server-to-server, Postman)
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
     return callback(new Error(`CORS: origin ${origin} not allowed`));
@@ -46,8 +36,8 @@ app.use(cors({
 }));
 
 // ── Body parsing ──────────────────────────────────────────────
-app.use(express.json({ limit: "2mb" }));
-app.use(express.urlencoded({ extended: true, limit: "2mb" }));
+app.use(express.json({ limit: "20mb" }));
+app.use(express.urlencoded({ extended: true, limit: "20mb" }));
 
 // ── Request logging ───────────────────────────────────────────
 if (process.env.NODE_ENV !== "test") app.use(morgan("dev"));
@@ -88,17 +78,37 @@ app.use(errorHandler);
 // ── Start server ──────────────────────────────────────────────
 const PORT = parseInt(process.env.PORT) || 5000;
 
-connectDB()
+const { sequelize } = require("./models/sql");
+
+sequelize.authenticate()
   .then(() => {
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(`\n✅ CNPS Backend running on http://localhost:${PORT}`);
       console.log(`   Environment : ${process.env.NODE_ENV || "development"}`);
-      console.log(`   Cloudinary  : ${process.env.CLOUDINARY_CLOUD_NAME ? "✅ configured" : "⚠️  NOT configured — uploads will fail"}`);
-      console.log(`   MongoDB     : connected\n`);
+      console.log(`   MySQL       : connected (${process.env.MYSQL_DB || "cnps_school"})\n`);
+    });
+
+    // ── EADDRINUSE: give a clear, actionable error instead of a raw crash ──
+    server.on("error", (err) => {
+      if (err.code === "EADDRINUSE") {
+        console.error(`\n❌ Port ${PORT} is already in use.`);
+        console.error(`   Another process (possibly an earlier backend instance) is already`);
+        console.error(`   listening on port ${PORT}.`);
+        console.error(`\n   Options:`);
+        console.error(`     1. If the existing server is up-to-date, use it directly — no restart needed.`);
+        console.error(`     2. To use a different port, set PORT=<number> in your .env file,`);
+        console.error(`        then update VITE_API_URL in frontend/.env to match.`);
+        console.error(`     3. To stop the existing server, close the terminal window running it,`);
+        console.error(`        then run: npm run dev\n`);
+        process.exit(1);
+      } else {
+        throw err;
+      }
     });
   })
   .catch((err) => {
-    console.error("❌ Failed to connect to MongoDB:", err.message);
+    console.error("❌ Failed to connect to MySQL:", err.message);
+    console.error("   Check MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASS, MYSQL_DB in .env");
     process.exit(1);
   });
 

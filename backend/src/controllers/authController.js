@@ -1,8 +1,10 @@
 "use strict";
 const crypto       = require("crypto");
 const jwt          = require("jsonwebtoken");
-const Admin        = require("../models/Admin");
+const bcrypt       = require("bcryptjs");
+const { Admin }    = require("../models/sql");
 const gmailService = require("../services/gmailService");
+const { serializeAdmin } = require("../utils/serializers");
 
 // ── POST /api/auth/login ──────────────────────────────────────
 const login = async (req, res) => {
@@ -13,7 +15,10 @@ const login = async (req, res) => {
       return res.status(400).json({ success: false, message: "Email and password are required." });
     }
 
-    const admin = await Admin.findOne({ email: email.toLowerCase().trim() }).select("+password");
+    const admin = await Admin.findOne({
+      where: { email: email.toLowerCase().trim() },
+    });
+
     if (!admin) {
       return res.status(401).json({ success: false, message: "Invalid email or password." });
     }
@@ -22,13 +27,13 @@ const login = async (req, res) => {
       return res.status(403).json({ success: false, message: "Your account is inactive. Contact support." });
     }
 
-    const match = await admin.comparePassword(password);
+    const match = await bcrypt.compare(password, admin.password);
     if (!match) {
       return res.status(401).json({ success: false, message: "Invalid email or password." });
     }
 
     const token = jwt.sign(
-      { id: admin._id, email: admin.email, role: admin.role },
+      { id: admin.id, email: admin.email, role: admin.role },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || "1d" }
     );
@@ -37,7 +42,7 @@ const login = async (req, res) => {
       success: true,
       message: "Login successful.",
       token,
-      admin: { id: admin._id, name: admin.name, email: admin.email, role: admin.role },
+      admin: { id: admin.id, name: admin.name, email: admin.email, role: admin.role },
     });
   } catch (err) {
     console.error("Login error:", err);
@@ -48,11 +53,11 @@ const login = async (req, res) => {
 // ── GET /api/auth/me ──────────────────────────────────────────
 const getMe = async (req, res) => {
   try {
-    const admin = await Admin.findById(req.admin.id);
+    const admin = await Admin.findByPk(req.admin.id);
     if (!admin) return res.status(404).json({ success: false, message: "Admin not found." });
     return res.json({
       success: true,
-      data: { id: admin._id, name: admin.name, email: admin.email, role: admin.role },
+      data: { id: admin.id, name: admin.name, email: admin.email, role: admin.role },
     });
   } catch (err) {
     return res.status(500).json({ success: false, message: "Failed to fetch profile." });
@@ -70,13 +75,14 @@ const changePassword = async (req, res) => {
       return res.status(400).json({ success: false, message: "New password must be at least 8 characters." });
     }
 
-    const admin = await Admin.findById(req.admin.id).select("+password");
+    const admin = await Admin.findByPk(req.admin.id);
     if (!admin) return res.status(404).json({ success: false, message: "Admin not found." });
 
-    const match = await admin.comparePassword(currentPassword);
+    const match = await bcrypt.compare(currentPassword, admin.password);
     if (!match) return res.status(400).json({ success: false, message: "Current password is incorrect." });
 
-    admin.password = newPassword;
+    const salt = await bcrypt.genSalt(12);
+    admin.password = await bcrypt.hash(newPassword, salt);
     await admin.save();
 
     return res.json({ success: true, message: "Password changed successfully." });
@@ -86,12 +92,6 @@ const changePassword = async (req, res) => {
 };
 
 // ── POST /api/auth/forgot-password ────────────────────────────
-// Generates a 1-hour reset token, stores it hashed, and emails a reset link
-// via the Gmail API over HTTPS (avoids Render's blocked SMTP ports).
-//
-// Reset URL format:  <FRONTEND_URL>/login?resetToken=<rawToken>
-// Frontend reads:    searchParams.get("resetToken")  →  ResetPasswordForm
-// Backend validates: SHA-256(rawToken) matches stored hash, expiry > now
 const forgotPassword = async (req, res) => {
   const isDev = process.env.NODE_ENV !== "production";
 
@@ -101,7 +101,7 @@ const forgotPassword = async (req, res) => {
       return res.status(400).json({ success: false, message: "Email address is required." });
     }
 
-    const admin = await Admin.findOne({ email: email.toLowerCase().trim() });
+    const admin = await Admin.findOne({ where: { email: email.toLowerCase().trim() } });
 
     // Always return 200 for unknown addresses — prevents account enumeration.
     if (!admin) {
@@ -116,29 +116,22 @@ const forgotPassword = async (req, res) => {
     const hashed    = crypto.createHash("sha256").update(rawToken).digest("hex");
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
 
-    // Use findByIdAndUpdate to avoid select:false field issues on .save()
-    await Admin.findByIdAndUpdate(admin._id, {
-      resetPasswordToken:   hashed,
-      resetPasswordExpires: expiresAt,
+    await admin.update({
+      resetPasswordToken: hashed,
+      resetPasswordExpires: expiresAt.getTime(),
     });
 
     // ── 2. Build the reset URL ────────────────────────────────
-    // FRONTEND_URL on Render = "https://cnpspublicschool.netlify.app"
-    // Hard-code the production fallback so a blank env var never generates
-    // a localhost link in a live reset email.
     const rawFrontendUrl = (process.env.FRONTEND_URL || "").split(",")[0].trim();
     const frontendUrl    = rawFrontendUrl ||
       (isDev ? "http://localhost:5173" : "https://cnpspublicschool.netlify.app");
     const resetUrl = frontendUrl + "/login?resetToken=" + rawToken;
-    // NOTE: rawToken is in resetUrl — resetUrl must never be logged.
 
     // ── 3. Check Gmail API credentials ───────────────────────
     const missing = gmailService.missingCredentials();
     if (missing.length > 0) {
       console.error("[ForgotPassword] Gmail API credentials not configured:", missing.join(", "));
       if (isDev) {
-        // Dev-only: return the token directly so the flow can be tested
-        // without a Google Cloud project.
         return res.json({
           success:    true,
           message:    "Gmail API not configured (dev mode). Use the token below.",
@@ -173,7 +166,6 @@ const forgotPassword = async (req, res) => {
         message: "A password reset link has been sent to your email address.",
       });
     } catch (sendErr) {
-      // sendErr.message is safe (contains no credentials or tokens).
       console.error("[ForgotPassword] Gmail API send failed:", sendErr.message);
       return res.status(500).json({
         success: false,
@@ -203,9 +195,11 @@ const resetPassword = async (req, res) => {
     const hashed = crypto.createHash("sha256").update(token.trim()).digest("hex");
 
     const admin = await Admin.findOne({
-      resetPasswordToken:   hashed,
-      resetPasswordExpires: { $gt: Date.now() },
-    }).select("+resetPasswordToken +resetPasswordExpires");
+      where: {
+        resetPasswordToken: hashed,
+        resetPasswordExpires: { [require("sequelize").Op.gt]: Date.now() },
+      },
+    });
 
     if (!admin) {
       return res.status(400).json({
@@ -214,11 +208,11 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    // Update the password — the pre-save hook bcrypt-hashes it.
-    // Clear token fields so the link cannot be reused.
-    admin.password             = password;
-    admin.resetPasswordToken   = undefined;
-    admin.resetPasswordExpires = undefined;
+    // Update password and clear reset token
+    const salt = await bcrypt.genSalt(12);
+    admin.password = await bcrypt.hash(password, salt);
+    admin.resetPasswordToken = null;
+    admin.resetPasswordExpires = null;
     await admin.save();
 
     return res.json({ success: true, message: "Password has been reset successfully. You can now log in." });
@@ -229,19 +223,6 @@ const resetPassword = async (req, res) => {
 };
 
 // ── Email template helpers ────────────────────────────────────
-
-/**
- * HTML body for the password-reset email.
- *
- * The resetUrl contains the raw token — do not log it anywhere.
- * The link opens /login?resetToken=<rawToken> on the frontend.
- * Login.jsx reads searchParams.get("resetToken") and renders ResetPasswordForm.
- *
- * @param {string} adminName
- * @param {string} resetUrl   — complete clickable URL (contains raw token)
- * @param {Date}   expiresAt  — token expiry Date object
- * @returns {string}
- */
 function buildResetEmailHtml(adminName, resetUrl, expiresAt) {
   const expiryStr = expiresAt.toUTCString();
   return `<!DOCTYPE html>
@@ -322,14 +303,6 @@ function buildResetEmailHtml(adminName, resetUrl, expiresAt) {
 </html>`;
 }
 
-/**
- * Plain-text body for the password-reset email (multipart/alternative fallback).
- * Must include the reset URL so users with text-only clients can still reset.
- *
- * @param {string} adminName
- * @param {string} resetUrl
- * @returns {string}
- */
 function buildResetEmailText(adminName, resetUrl) {
   return [
     "CNPS Public School — Admin Portal",

@@ -103,19 +103,48 @@ const inputStyle = {
 
 const safeArray = (d) => (Array.isArray(d) ? d : Array.isArray(d?.data) ? d.data : []);
 
+// ── TASK 2: Stat category → icon mapping (centralized) ────────
+// Changing this map automatically updates both admin preview and public site.
+const STAT_CATEGORIES = [
+  { value: "Students", label: "Students",  icon: "bi-people-fill" },
+  { value: "Events",   label: "Events",    icon: "bi-calendar-event-fill" },
+  { value: "Faculty",  label: "Faculty",   icon: "bi-mortarboard-fill" },
+  { value: "Courses",  label: "Courses",   icon: "bi-book-fill" },
+];
+
+function iconForCategory(category) {
+  const match = STAT_CATEGORIES.find(c => c.value === category);
+  return match ? match.icon : "bi-star-fill";
+}
+
+// ── SECTION wrapper — defined at MODULE LEVEL (not inside render)
+// FIX: Previously defined inside HomepageContentTab, causing React to treat
+// it as a new component on every render, which unmounted/remounted all
+// child inputs and caused focus loss after every keystroke.
+const Section = ({ title, icon, children }) => (
+  <div style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: 24, marginBottom: 20 }}>
+    <h4 style={{ margin: "0 0 18px 0", color: "var(--navy)", display: "flex", alignItems: "center", gap: 8 }}>
+      <i className={`bi ${icon}`} style={{ color: "var(--primary)" }} /> {title}
+    </h4>
+    {children}
+  </div>
+);
+
 // ─────────────────────────────────────────────────────────────
 // TAB 1: Hero Slides
 // ─────────────────────────────────────────────────────────────
 const EMPTY_SLIDE = { title: "", subtitle: "", description: "", buttonText: "", buttonUrl: "", isActive: true };
 
 const SlideModal = ({ initial, onClose, onSaved, showToast }) => {
+  // FIX: Map backend `status` field to frontend `isActive` boolean on load
   const [form, setForm] = useState(initial ? {
     title: initial.title || "",
     subtitle: initial.subtitle || "",
     description: initial.description || "",
     buttonText: initial.buttonText || "",
     buttonUrl: initial.buttonUrl || "",
-    isActive: initial.isActive !== false,
+    // backend stores "active"/"inactive", frontend uses boolean isActive
+    isActive: initial.status ? initial.status === "active" : (initial.isActive !== false),
   } : { ...EMPTY_SLIDE });
   const [saving, setSaving] = useState(false);
   const [imgFile, setImgFile] = useState(null);
@@ -135,12 +164,21 @@ const SlideModal = ({ initial, onClose, onSaved, showToast }) => {
     e.preventDefault();
     setSaving(true);
     try {
+      // FIX: Convert frontend isActive boolean → backend status string
+      const payload = {
+        title: form.title,
+        subtitle: form.subtitle,
+        description: form.description,
+        buttonText: form.buttonText,
+        buttonUrl: form.buttonUrl,
+        status: form.isActive ? "active" : "inactive",
+      };
       let saved;
       if (initial?._id) {
-        saved = await updateHeroSlide(initial._id, form);
+        saved = await updateHeroSlide(initial._id, payload);
         showToast("Slide updated", "success");
       } else {
-        saved = await createHeroSlide(form);
+        saved = await createHeroSlide(payload);
         showToast("Slide created", "success");
       }
       const id = saved?.data?._id || initial?._id;
@@ -272,8 +310,10 @@ function HeroSlidesTab({ showToast }) {
   const toggleActive = async (slide) => {
     setToggling(t => ({ ...t, [slide._id]: true }));
     try {
-      await updateHeroSlide(slide._id, { isActive: !slide.isActive });
-      showToast(`Slide ${!slide.isActive ? "activated" : "deactivated"}`, "success");
+      // FIX: send status string, not isActive boolean
+      const newStatus = slide.status === "active" ? "inactive" : "active";
+      await updateHeroSlide(slide._id, { status: newStatus });
+      showToast(`Slide ${newStatus === "active" ? "activated" : "deactivated"}`, "success");
       load();
     } catch { showToast("Toggle failed", "error"); }
     finally { setToggling(t => ({ ...t, [slide._id]: false })); }
@@ -296,63 +336,66 @@ function HeroSlidesTab({ showToast }) {
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {slides.map((slide, idx) => (
-            <div key={slide._id} style={{
-              background: "#fff", border: "1.5px solid var(--border)",
-              borderRadius: "var(--radius-md)", padding: "14px 18px",
-              display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap",
-            }}>
-              {/* Image */}
-              <div style={{ width: 90, height: 60, borderRadius: "var(--radius-sm)", overflow: "hidden", background: "var(--bg-soft-blue)", flexShrink: 0 }}>
-                {(slide.image?.url || slide.imageUrl) ? (
-                  <img src={slide.image?.url || slide.imageUrl} alt={slide.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                ) : (
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--text-muted)" }}>
-                    <i className="bi bi-image" />
-                  </div>
-                )}
-              </div>
-              {/* Info */}
-              <div style={{ flex: 1, minWidth: 180 }}>
-                <div style={{ fontWeight: 700, color: "var(--navy)", fontSize: "0.95rem" }}>{slide.title || "—"}</div>
-                <div style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>{slide.subtitle}</div>
-                {slide.buttonText && (
-                  <div style={{ fontSize: "0.78rem", color: "var(--primary)", marginTop: 2 }}>
-                    <i className="bi bi-link-45deg" /> {slide.buttonText} → {slide.buttonUrl}
-                  </div>
-                )}
-              </div>
-              {/* Status toggle */}
-              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", flexShrink: 0 }}>
-                <div
-                  onClick={() => !toggling[slide._id] && toggleActive(slide)}
-                  style={{
-                    width: 42, height: 24, borderRadius: "var(--radius-pill)", cursor: "pointer",
-                    background: slide.isActive ? "var(--success)" : "var(--border)",
-                    position: "relative", transition: "background 0.2s",
-                  }}
-                >
-                  <div style={{
-                    position: "absolute", top: 3, left: slide.isActive ? 20 : 3,
-                    width: 18, height: 18, borderRadius: "50%", background: "#fff",
-                    transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-                  }} />
+          {slides.map((slide) => {
+            const isActive = slide.status === "active";
+            return (
+              <div key={slide._id} style={{
+                background: "#fff", border: "1.5px solid var(--border)",
+                borderRadius: "var(--radius-md)", padding: "14px 18px",
+                display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap",
+              }}>
+                {/* Image */}
+                <div style={{ width: 90, height: 60, borderRadius: "var(--radius-sm)", overflow: "hidden", background: "var(--bg-soft-blue)", flexShrink: 0 }}>
+                  {slide.image?.url ? (
+                    <img src={slide.image.url} alt={slide.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  ) : (
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--text-muted)" }}>
+                      <i className="bi bi-image" />
+                    </div>
+                  )}
                 </div>
-                <span style={{ fontSize: "0.82rem", color: "var(--text-secondary)" }}>
-                  {slide.isActive ? "Active" : "Inactive"}
-                </span>
-              </label>
-              {/* Actions */}
-              <div style={{ display: "flex", gap: 6 }}>
-                <button onClick={() => { setEditing(slide); setShowModal(true); }} style={btnStyle("ghost", true)} title="Edit">
-                  <i className="bi bi-pencil" />
-                </button>
-                <button onClick={() => confirmDelete(slide)} style={{ ...btnStyle("ghost", true), color: "var(--danger)" }} title="Delete">
-                  <i className="bi bi-trash" />
-                </button>
+                {/* Info */}
+                <div style={{ flex: 1, minWidth: 180 }}>
+                  <div style={{ fontWeight: 700, color: "var(--navy)", fontSize: "0.95rem" }}>{slide.title || "—"}</div>
+                  <div style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>{slide.subtitle}</div>
+                  {slide.buttonText && (
+                    <div style={{ fontSize: "0.78rem", color: "var(--primary)", marginTop: 2 }}>
+                      <i className="bi bi-link-45deg" /> {slide.buttonText} → {slide.buttonUrl}
+                    </div>
+                  )}
+                </div>
+                {/* Status toggle */}
+                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", flexShrink: 0 }}>
+                  <div
+                    onClick={() => !toggling[slide._id] && toggleActive(slide)}
+                    style={{
+                      width: 42, height: 24, borderRadius: "var(--radius-pill)", cursor: "pointer",
+                      background: isActive ? "var(--success)" : "var(--border)",
+                      position: "relative", transition: "background 0.2s",
+                    }}
+                  >
+                    <div style={{
+                      position: "absolute", top: 3, left: isActive ? 20 : 3,
+                      width: 18, height: 18, borderRadius: "50%", background: "#fff",
+                      transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                    }} />
+                  </div>
+                  <span style={{ fontSize: "0.82rem", color: "var(--text-secondary)" }}>
+                    {isActive ? "Active" : "Inactive"}
+                  </span>
+                </label>
+                {/* Actions */}
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={() => { setEditing(slide); setShowModal(true); }} style={btnStyle("ghost", true)} title="Edit">
+                    <i className="bi bi-pencil" />
+                  </button>
+                  <button onClick={() => confirmDelete(slide)} style={{ ...btnStyle("ghost", true), color: "var(--danger)" }} title="Delete">
+                    <i className="bi bi-trash" />
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -369,15 +412,19 @@ function HeroSlidesTab({ showToast }) {
 // ─────────────────────────────────────────────────────────────
 // TAB 2: Homepage Content
 // ─────────────────────────────────────────────────────────────
-const EMPTY_STAT = { icon: "bi-star", value: "", label: "", suffix: "" };
+
+// FIX: Use correct backend field names for stats (countStats) and why section
+// (whyUsHeading / whyUsDescription). Previous code used stats/whyHeading/whyDescription
+// which never matched the MongoDB schema, so nothing was ever saved or loaded.
+const EMPTY_STAT = { category: "Students", value: "", label: "", suffix: "+" };
 const EMPTY_CONTENT = {
   aboutHeading: "",
   aboutSubheading: "",
   aboutDescription: "",
   aboutPoints: [],
-  whyHeading: "",
-  whyDescription: "",
-  stats: [],
+  whyUsHeading: "",
+  whyUsDescription: "",
+  countStats: [],
   ctaHeading: "",
   ctaDescription: "",
   ctaButtonText: "",
@@ -399,17 +446,25 @@ function HomepageContentTab({ showToast }) {
       const data = await getHomepageContent();
       if (data) {
         setForm({
-          aboutHeading: data.aboutHeading || "",
+          aboutHeading:    data.aboutHeading    || "",
           aboutSubheading: data.aboutSubheading || "",
-          aboutDescription: data.aboutDescription || "",
-          aboutPoints: Array.isArray(data.aboutPoints) ? data.aboutPoints : [],
-          whyHeading: data.whyHeading || "",
-          whyDescription: data.whyDescription || "",
-          stats: Array.isArray(data.stats) ? data.stats : [],
-          ctaHeading: data.ctaHeading || "",
-          ctaDescription: data.ctaDescription || "",
+          aboutDescription:data.aboutDescription|| "",
+          aboutPoints:     Array.isArray(data.aboutPoints)  ? data.aboutPoints  : [],
+          // FIX: correct field names matching the Mongoose schema
+          whyUsHeading:    data.whyUsHeading    || "",
+          whyUsDescription:data.whyUsDescription|| "",
+          // FIX: backend field is countStats, not stats
+          countStats: Array.isArray(data.countStats) ? data.countStats.map(s => ({
+            // Normalize legacy stats: if category missing, derive from icon or default to Students
+            category: s.category || legacyIconToCategory(s.icon) || "Students",
+            value:    s.value ?? "",
+            label:    s.label   || "",
+            suffix:   s.suffix  || "+",
+          })) : [],
+          ctaHeading:    data.ctaHeading    || "",
+          ctaDescription:data.ctaDescription|| "",
           ctaButtonText: data.ctaButtonText || "",
-          ctaButtonUrl: data.ctaButtonUrl || "",
+          ctaButtonUrl:  data.ctaButtonUrl  || "",
         });
         setAboutImgPreview(data.aboutImage?.url || null);
       }
@@ -422,26 +477,24 @@ function HomepageContentTab({ showToast }) {
 
   useEffect(() => { load(); }, []);
 
+  // FIX: The set helper returns an onChange handler.
+  // It is defined here (not inside render) so it is stable across renders.
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
 
   // About points
-  const addPoint = () => setForm(f => ({ ...f, aboutPoints: [...f.aboutPoints, ""] }));
-  const setPoint = (idx, val) => setForm(f => {
-    const pts = [...f.aboutPoints];
-    pts[idx] = val;
-    return { ...f, aboutPoints: pts };
-  });
-  const removePoint = (idx) => setForm(f => ({ ...f, aboutPoints: f.aboutPoints.filter((_, i) => i !== idx) }));
+  const addPoint    = () => setForm(f => ({ ...f, aboutPoints: [...f.aboutPoints, ""] }));
+  const setPoint    = (idx, val) => setForm(f => { const pts = [...f.aboutPoints]; pts[idx] = val; return { ...f, aboutPoints: pts }; });
+  const removePoint = (idx)      => setForm(f => ({ ...f, aboutPoints: f.aboutPoints.filter((_, i) => i !== idx) }));
 
   // Stats
-  const addStat = () => setForm(f => ({ ...f, stats: [...f.stats, { ...EMPTY_STAT }] }));
-  const setStat = (idx, k, val) => setForm(f => {
-    const stats = f.stats.map((s, i) => i === idx ? { ...s, [k]: val } : s);
-    return { ...f, stats };
+  const addStat    = () => setForm(f => ({ ...f, countStats: [...f.countStats, { ...EMPTY_STAT }] }));
+  const setStat    = (idx, k, val) => setForm(f => {
+    const countStats = f.countStats.map((s, i) => i === idx ? { ...s, [k]: val } : s);
+    return { ...f, countStats };
   });
-  const removeStat = (idx) => setForm(f => ({ ...f, stats: f.stats.filter((_, i) => i !== idx) }));
+  const removeStat = (idx) => setForm(f => ({ ...f, countStats: f.countStats.filter((_, i) => i !== idx) }));
 
-  // About image upload
+  // About image
   const handleAboutImg = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -449,7 +502,7 @@ function HomepageContentTab({ showToast }) {
     setAboutImgPreview(URL.createObjectURL(file));
   };
 
-  const uploadAboutImg = async () => {
+  const doUploadAboutImg = async () => {
     if (!aboutImgFile) return;
     setUploadingImg(true);
     try {
@@ -469,8 +522,20 @@ function HomepageContentTab({ showToast }) {
     e.preventDefault();
     setSaving(true);
     try {
-      await updateHomepageContent(form);
-      if (aboutImgFile) await uploadAboutImg();
+      // FIX: Build payload with correct backend field names.
+      // Also derive icon from category before sending so the public site can display it.
+      const payload = {
+        ...form,
+        countStats: form.countStats.map(s => ({
+          category: s.category,
+          icon:     iconForCategory(s.category), // derive icon server-side from category
+          value:    Number(s.value) || 0,
+          label:    s.label,
+          suffix:   s.suffix || "+",
+        })),
+      };
+      await updateHomepageContent(payload);
+      if (aboutImgFile) await doUploadAboutImg();
       showToast("Homepage content saved", "success");
     } catch (err) {
       showToast(err?.response?.data?.message || "Save failed", "error");
@@ -481,14 +546,7 @@ function HomepageContentTab({ showToast }) {
 
   if (loading) return <div className="loading-state"><div className="spinner" /><p>Loading content…</p></div>;
 
-  const Section = ({ title, icon, children }) => (
-    <div style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: 24, marginBottom: 20 }}>
-      <h4 style={{ margin: "0 0 18px 0", color: "var(--navy)", display: "flex", alignItems: "center", gap: 8 }}>
-        <i className={`bi ${icon}`} style={{ color: "var(--primary)" }} /> {title}
-      </h4>
-      {children}
-    </div>
-  );
+  // Section is now defined at MODULE LEVEL above — do not redeclare it here.
 
   return (
     <form onSubmit={handleSave}>
@@ -550,30 +608,57 @@ function HomepageContentTab({ showToast }) {
       <Section title="Why Choose Us" icon="bi-award">
         <div style={{ marginBottom: 14 }}>
           <label style={labelStyle}>Heading</label>
-          <input value={form.whyHeading} onChange={set("whyHeading")} placeholder="e.g. Why Choose CNPS?" style={inputStyle} />
+          {/* FIX: field was whyHeading, now whyUsHeading to match schema */}
+          <input value={form.whyUsHeading} onChange={set("whyUsHeading")} placeholder="e.g. Why Choose CNPS?" style={inputStyle} />
         </div>
         <div>
           <label style={labelStyle}>Description</label>
-          <textarea value={form.whyDescription} onChange={set("whyDescription")} rows={4} style={{ ...inputStyle, resize: "vertical" }} />
+          {/* FIX: field was whyDescription, now whyUsDescription to match schema */}
+          <textarea value={form.whyUsDescription} onChange={set("whyUsDescription")} rows={4} style={{ ...inputStyle, resize: "vertical" }} />
         </div>
       </Section>
 
       {/* ── Statistics ── */}
       <Section title="Statistics / Count Stats" icon="bi-bar-chart-line">
-        {form.stats.map((stat, idx) => (
-          <div key={idx} style={{ display: "grid", gridTemplateColumns: "2fr 1.5fr 2fr 1.5fr auto", gap: 10, marginBottom: 12, alignItems: "end" }}>
+        <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: 14, marginTop: 0 }}>
+          Select a category — the icon is assigned automatically.
+        </p>
+        {form.countStats.map((stat, idx) => (
+          <div key={idx} style={{ display: "grid", gridTemplateColumns: "2.5fr 1.5fr 2fr 1fr auto", gap: 10, marginBottom: 12, alignItems: "end", padding: "12px 14px", background: "var(--bg-section)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)" }}>
+            {/* Category dropdown — replaces manual icon entry */}
             <div>
-              {idx === 0 && <label style={{ ...labelStyle, marginBottom: 4 }}>Icon (Bootstrap Icons class)</label>}
-              <input value={stat.icon} onChange={e => setStat(idx, "icon", e.target.value)} placeholder="bi-mortarboard" style={inputStyle} />
+              {idx === 0 && <label style={{ ...labelStyle, marginBottom: 4 }}>Category</label>}
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <i className={`bi ${iconForCategory(stat.category)}`} style={{ fontSize: "1.1rem", color: "var(--primary)", flexShrink: 0 }} title={`Icon: ${iconForCategory(stat.category)}`} />
+                <select
+                  value={stat.category}
+                  onChange={e => setStat(idx, "category", e.target.value)}
+                  style={{ ...inputStyle, cursor: "pointer" }}
+                >
+                  {STAT_CATEGORIES.map(c => (
+                    <option key={c.value} value={c.value}>{c.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
+            {/* Value */}
             <div>
               {idx === 0 && <label style={{ ...labelStyle, marginBottom: 4 }}>Value</label>}
-              <input value={stat.value} onChange={e => setStat(idx, "value", e.target.value)} placeholder="1200" style={inputStyle} />
+              <input
+                value={stat.value}
+                onChange={e => setStat(idx, "value", e.target.value)}
+                placeholder="1200"
+                style={inputStyle}
+                type="number"
+                min="0"
+              />
             </div>
+            {/* Label */}
             <div>
               {idx === 0 && <label style={{ ...labelStyle, marginBottom: 4 }}>Label</label>}
               <input value={stat.label} onChange={e => setStat(idx, "label", e.target.value)} placeholder="Students Enrolled" style={inputStyle} />
             </div>
+            {/* Suffix */}
             <div>
               {idx === 0 && <label style={{ ...labelStyle, marginBottom: 4 }}>Suffix</label>}
               <input value={stat.suffix} onChange={e => setStat(idx, "suffix", e.target.value)} placeholder="+" style={inputStyle} />
@@ -619,12 +704,23 @@ function HomepageContentTab({ showToast }) {
   );
 }
 
+// ── Utility: derive category from legacy icon string ──────────
+function legacyIconToCategory(icon) {
+  if (!icon) return null;
+  const lc = icon.toLowerCase();
+  if (lc.includes("people") || lc.includes("person") || lc.includes("student") || lc.includes("mortarboard")) return "Students";
+  if (lc.includes("calendar") || lc.includes("event"))  return "Events";
+  if (lc.includes("teacher") || lc.includes("graduation")) return "Faculty";
+  if (lc.includes("book") || lc.includes("course"))     return "Courses";
+  return null;
+}
+
 // ─────────────────────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────
 const TABS = [
-  { key: "slides", label: "Hero Slides", icon: "bi-images" },
-  { key: "content", label: "Homepage Content", icon: "bi-layout-text-sidebar-reverse" },
+  { key: "slides",  label: "Hero Slides",       icon: "bi-images" },
+  { key: "content", label: "Homepage Content",  icon: "bi-layout-text-sidebar-reverse" },
 ];
 
 export default function AdminHomepage() {
@@ -666,7 +762,7 @@ export default function AdminHomepage() {
       </div>
 
       {/* Tab content */}
-      {activeTab === "slides" && <HeroSlidesTab showToast={showToast} />}
+      {activeTab === "slides"  && <HeroSlidesTab showToast={showToast} />}
       {activeTab === "content" && <HomepageContentTab showToast={showToast} />}
 
       {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}

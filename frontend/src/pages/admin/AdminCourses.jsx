@@ -10,17 +10,17 @@ import {
 } from "../../services/adminService";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-const CATEGORIES = ["Primary", "Secondary", "Higher Secondary", "Other"];
+const CATEGORIES = ["Pre-Primary", "Primary", "Secondary", "Higher Secondary", "Other"];
 
 const EMPTY_FORM = {
   title: "",
   category: "",
   className: "",
   shortDescription: "",
-  fullDescription: "",
+  description: "",  // FIX: was fullDescription — backend model field is `description`
   classTeacher: "",
   timing: "",
-  isActive: true,
+  status: "active",  // FIX: was isActive boolean — backend uses status enum
   subjects: [],
 };
 
@@ -268,18 +268,19 @@ function BooksSection({ books, onChange }) {
 }
 
 // ── Upload Buttons ─────────────────────────────────────────────────────────
-function UploadSection({ courseId, addToast, onDone }) {
+function UploadSection({ courseId, existingImageUrl, addToast, onDone }) {
   const imgRef = useRef();
   const feeRef = useRef();
   const ttRef = useRef();
   const [uploading, setUploading] = useState({});
+  // FIX: show existing image URL; update preview after new upload
+  const [imgPreview, setImgPreview] = useState(existingImageUrl || null);
 
   async function upload(type, file, fn) {
     if (!file || !courseId) return;
     setUploading((prev) => ({ ...prev, [type]: true }));
     try {
       const fd = new FormData();
-      // Backend multer field names: image upload = "image", PDF uploads = "file"
       if (type === "image") {
         fd.append("image", file);
       } else {
@@ -301,16 +302,27 @@ function UploadSection({ courseId, addToast, onDone }) {
         <i className="bi bi-cloud-upload" style={{ marginRight: 6 }} />
         Uploads
       </div>
+      {/* FIX: show existing course image preview */}
+      {imgPreview && (
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: 4 }}>Current Image:</div>
+          <img src={imgPreview} alt="Course" style={{ width: 120, height: 80, objectFit: "cover", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)" }} />
+        </div>
+      )}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
         {/* Cover Image */}
         <div>
           <input type="file" accept="image/*" ref={imgRef} style={{ display: "none" }}
-            onChange={(e) => upload("image", e.target.files[0], uploadCourseImage)} />
+            onChange={(e) => {
+              const f = e.target.files[0];
+              if (f) setImgPreview(URL.createObjectURL(f));
+              upload("image", f, uploadCourseImage);
+            }} />
           <button type="button" className="btn btn-outline" style={{ fontSize: "0.82rem" }}
             onClick={() => imgRef.current?.click()} disabled={uploading.image}>
             {uploading.image
               ? <><span className="spinner" style={{ width: 12, height: 12, marginRight: 5 }} />Uploading…</>
-              : <><i className="bi bi-image" style={{ marginRight: 5 }} />Cover Image</>}
+              : <><i className="bi bi-image" style={{ marginRight: 5 }} />{imgPreview ? "Change Image" : "Cover Image"}</>}
           </button>
         </div>
         {/* Fee PDF */}
@@ -349,10 +361,12 @@ function CourseModal({ course, onClose, onSaved, addToast }) {
           category: course.category || "",
           className: course.className || "",
           shortDescription: course.shortDescription || "",
-          fullDescription: course.fullDescription || "",
+          // FIX: backend field is `description`, not `fullDescription`
+          description: course.description || "",
           classTeacher: course.classTeacher || "",
           timing: course.timing || "",
-          isActive: course.isActive !== false,
+          // FIX: backend uses status enum "active"/"inactive", not isActive boolean
+          status: course.status || "active",
           subjects: Array.isArray(course.subjects) ? course.subjects : [],
           books: Array.isArray(course.books) ? course.books : [],
         }
@@ -364,7 +378,6 @@ function CourseModal({ course, onClose, onSaved, addToast }) {
   function set(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
-
   async function handleSave(e) {
     e.preventDefault();
     if (!form.title.trim()) {
@@ -466,7 +479,8 @@ function CourseModal({ course, onClose, onSaved, addToast }) {
               {/* Full Description */}
               <div style={{ ...groupStyle, gridColumn: "1/-1" }}>
                 <label style={labelStyle}>Full Description</label>
-                <textarea rows={4} style={{ ...inputStyle, resize: "vertical" }} value={form.fullDescription} onChange={(e) => set("fullDescription", e.target.value)} placeholder="Detailed course description" />
+                {/* FIX: field was fullDescription — backend model uses `description` */}
+                <textarea rows={4} style={{ ...inputStyle, resize: "vertical" }} value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="Detailed course description" />
               </div>
               {/* Subjects */}
               <div style={{ ...groupStyle, gridColumn: "1/-1" }}>
@@ -481,18 +495,19 @@ function CourseModal({ course, onClose, onSaved, addToast }) {
               {/* Status */}
               <div style={{ ...groupStyle, gridColumn: "1/-1", display: "flex", alignItems: "center", gap: 12 }}>
                 <label style={{ ...labelStyle, marginBottom: 0 }}>Status</label>
+                {/* FIX: toggle between "active"/"inactive" strings, not true/false boolean */}
                 <div
-                  onClick={() => set("isActive", !form.isActive)}
+                  onClick={() => set("status", form.status === "active" ? "inactive" : "active")}
                   style={{
                     width: 44, height: 24, borderRadius: 999,
-                    background: form.isActive ? "var(--primary)" : "var(--border)",
+                    background: form.status === "active" ? "var(--primary)" : "var(--border)",
                     position: "relative", cursor: "pointer", transition: "background 0.2s",
                   }}
                 >
                   <div
                     style={{
                       position: "absolute", top: 3,
-                      left: form.isActive ? 22 : 3,
+                      left: form.status === "active" ? 22 : 3,
                       width: 18, height: 18, borderRadius: "50%",
                       background: "#fff", transition: "left 0.2s",
                       boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
@@ -500,14 +515,14 @@ function CourseModal({ course, onClose, onSaved, addToast }) {
                   />
                 </div>
                 <span style={{ fontSize: "0.9rem", color: "var(--text-secondary)" }}>
-                  {form.isActive ? "Active" : "Inactive"}
+                  {form.status === "active" ? "Active" : "Inactive"}
                 </span>
               </div>
             </div>
 
             {/* Uploads — only after save */}
             {savedId && (
-              <UploadSection courseId={savedId} addToast={addToast} onDone={onSaved} />
+              <UploadSection courseId={savedId} existingImageUrl={course?.image?.url || null} addToast={addToast} onDone={onSaved} />
             )}
           </div>
           <div className="modal-footer">
@@ -676,8 +691,9 @@ export default function AdminCourses() {
                     onMouseLeave={(e) => (e.currentTarget.style.background = "")}
                   >
                     <td style={tdStyle}>
-                      {c.image ? (
-                        <img src={c.image} alt={c.title} style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 6, display: "block" }} />
+                      {/* FIX: c.image is {url, publicId} object, not a plain URL string */}
+                      {c.image?.url ? (
+                        <img src={c.image.url} alt={c.title} style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 6, display: "block" }} />
                       ) : (
                         <div style={{ width: 48, height: 48, borderRadius: 6, background: "var(--bg-section)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: "1.2rem" }}>
                           <i className="bi bi-book" />
@@ -689,7 +705,7 @@ export default function AdminCourses() {
                       {c.className && <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{c.className}</div>}
                     </td>
                     <td style={{ ...tdStyle, color: "var(--text-secondary)" }}>{c.category || "—"}</td>
-                    <td style={tdStyle}><StatusBadge active={c.isActive !== false} /></td>
+                    <td style={tdStyle}><StatusBadge active={c.status === "active"} /></td>
                     <td style={{ ...tdStyle, textAlign: "right" }}>
                       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                         <button className="btn btn-outline" style={{ padding: "5px 12px", fontSize: "0.82rem" }}

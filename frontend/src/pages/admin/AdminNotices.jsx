@@ -152,9 +152,10 @@ function NoticeModal({ notice, onClose, onSaved, addToast }) {
       ? {
           title: notice.title || "",
           content: notice.content || "",
-          isActive: notice.isActive !== false,
+          // FIX: backend uses status enum "active"/"inactive", not isActive boolean
+          status: notice.status || "active",
         }
-      : { title: "", content: "", isActive: true }
+      : { title: "", content: "", status: "active" }
   );
   const [saving, setSaving] = useState(false);
   const [savedId, setSavedId] = useState(notice?._id || null);
@@ -268,18 +269,19 @@ function NoticeModal({ notice, onClose, onSaved, addToast }) {
             {/* Status */}
             <div style={{ ...groupStyle, display: "flex", alignItems: "center", gap: 12 }}>
               <label style={{ ...labelStyle, marginBottom: 0 }}>Status</label>
+              {/* FIX: toggle between "active"/"inactive" strings */}
               <div
-                onClick={() => set("isActive", !form.isActive)}
+                onClick={() => set("status", form.status === "active" ? "inactive" : "active")}
                 style={{
                   width: 44, height: 24, borderRadius: 999,
-                  background: form.isActive ? "var(--primary)" : "var(--border)",
+                  background: form.status === "active" ? "var(--primary)" : "var(--border)",
                   position: "relative", cursor: "pointer", transition: "background 0.2s",
                 }}
               >
                 <div
                   style={{
                     position: "absolute", top: 3,
-                    left: form.isActive ? 22 : 3,
+                    left: form.status === "active" ? 22 : 3,
                     width: 18, height: 18, borderRadius: "50%",
                     background: "#fff", transition: "left 0.2s",
                     boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
@@ -287,7 +289,7 @@ function NoticeModal({ notice, onClose, onSaved, addToast }) {
                 />
               </div>
               <span style={{ fontSize: "0.9rem", color: "var(--text-secondary)" }}>
-                {form.isActive ? "Active" : "Inactive"}
+                {form.status === "active" ? "Active" : "Inactive"}
               </span>
             </div>
 
@@ -547,7 +549,8 @@ export default function AdminNotices() {
                       {formatDate(n.createdAt || n.date)}
                     </td>
                     <td style={tdStyle}>
-                      <StatusBadge active={n.isActive !== false} />
+                      {/* FIX: backend uses status enum "active"/"inactive", not isActive */}
+                      <StatusBadge active={n.status === "active"} />
                     </td>
                     <td style={{ ...tdStyle, textAlign: "center" }}>
                       <FileIcon file={n.file} />

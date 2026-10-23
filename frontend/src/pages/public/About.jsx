@@ -111,25 +111,31 @@ export default function About() {
             ))}
           </div>
 
-          {/* Extra images — uses .grid.grid-2 (responsive via global.css) */}
-          {(s.aboutImage2?.url || s.aboutImage3?.url) && (
-            <div className="grid grid-2">
-              {s.aboutImage2?.url && (
-                <img
-                  src={s.aboutImage2.url}
-                  alt="School"
-                  style={{ width: "100%", borderRadius: "var(--radius-lg)", height: 280, objectFit: "cover" }}
-                />
-              )}
-              {s.aboutImage3?.url && (
-                <img
-                  src={s.aboutImage3.url}
-                  alt="School"
-                  style={{ width: "100%", borderRadius: "var(--radius-lg)", height: 280, objectFit: "cover" }}
-                />
-              )}
-            </div>
-          )}
+          {/* Extra images — render from aboutImages array (new) or legacy aboutImage1/2/3 */}
+          {(() => {
+            // Prefer the new aboutImages array if it has entries
+            const imgs = Array.isArray(s.aboutImages) && s.aboutImages.length > 0
+              ? s.aboutImages.map(img => img.url || img).filter(Boolean)
+              : [s.aboutImage1?.url, s.aboutImage2?.url, s.aboutImage3?.url].filter(Boolean);
+            if (!imgs.length) return null;
+            return (
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+                gap: "clamp(12px, 3vw, 20px)",
+                marginTop: "clamp(24px, 5vw, 40px)",
+              }}>
+                {imgs.map((url, i) => (
+                  <img
+                    key={i}
+                    src={url}
+                    alt={`About CNPS ${i + 2}`}
+                    style={{ width: "100%", borderRadius: "var(--radius-lg)", height: 220, objectFit: "cover" }}
+                  />
+                ))}
+              </div>
+            );
+          })()}
         </div>
       </section>
     </>

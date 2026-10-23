@@ -17,6 +17,10 @@ import Contact       from "./pages/public/Contact";
 import Admission     from "./pages/public/Admission";
 import Login         from "./pages/public/Login";
 
+// Legal pages
+import TermsAndConditions from "./pages/public/TermsAndConditions";
+import PrivacyPolicy      from "./pages/public/PrivacyPolicy";
+
 // Admin pages
 import AdminDashboard      from "./pages/admin/AdminDashboard";
 import AdminHomepage       from "./pages/admin/AdminHomepage";
@@ -49,6 +53,8 @@ export default function App() {
         <Route path="/contact"                 element={<Contact />} />
         <Route path="/admission"               element={<Admission />} />
         <Route path="/login"                   element={<Login />} />
+        <Route path="/terms-and-conditions"    element={<TermsAndConditions />} />
+        <Route path="/privacy-policy"          element={<PrivacyPolicy />} />
       </Route>
 
       {/* ── Admin Routes ──────────────────────────────────── */}

@@ -8,18 +8,24 @@ import {
 } from "../../services/adminService";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
+// FIX: backend model uses flat social link fields (facebook, instagram, linkedin, youtube)
+// and status enum "active"/"inactive", not isActive boolean, and bio not fullBio.
 const EMPTY_FORM = {
   name: "",
   designation: "",
   qualification: "",
   experience: "",
   shortBio: "",
-  fullBio: "",
+  bio: "",         // FIX: was fullBio — backend field is `bio`
   email: "",
   phone: "",
   sortOrder: 0,
-  socialLinks: { facebook: "", instagram: "", linkedin: "", youtube: "" },
-  isActive: true,
+  // FIX: backend stores social links as flat fields, not a nested socialLinks object
+  facebook: "",
+  instagram: "",
+  linkedin: "",
+  youtube: "",
+  status: "active", // FIX: was isActive boolean — backend uses status enum
 };
 
 function safeArray(val) {
@@ -118,35 +124,33 @@ function FacultyModal({ faculty, onClose, onSaved, onPhotoUpload, addToast }) {
           qualification: faculty.qualification || "",
           experience: faculty.experience || "",
           shortBio: faculty.shortBio || "",
-          fullBio: faculty.fullBio || "",
+          // FIX: backend field is `bio`, not `fullBio`
+          bio: faculty.bio || "",
           email: faculty.email || "",
           phone: faculty.phone || "",
           sortOrder: faculty.sortOrder ?? 0,
-          socialLinks: {
-            facebook: faculty.socialLinks?.facebook || "",
-            instagram: faculty.socialLinks?.instagram || "",
-            linkedin: faculty.socialLinks?.linkedin || "",
-            youtube: faculty.socialLinks?.youtube || "",
-          },
-          isActive: faculty.isActive !== false,
+          // FIX: backend stores social links as flat fields, not nested socialLinks object
+          facebook:  faculty.facebook  || faculty.socialLinks?.facebook  || "",
+          instagram: faculty.instagram || faculty.socialLinks?.instagram || "",
+          linkedin:  faculty.linkedin  || faculty.socialLinks?.linkedin  || "",
+          youtube:   faculty.youtube   || faculty.socialLinks?.youtube   || "",
+          // FIX: backend uses status enum "active"/"inactive", not isActive boolean
+          status: faculty.status || "active",
         }
-      : { ...EMPTY_FORM, socialLinks: { ...EMPTY_FORM.socialLinks } }
+      : { ...EMPTY_FORM }
   );
   const [saving, setSaving] = useState(false);
   const [savedId, setSavedId] = useState(faculty?._id || null);
   const [photoFile, setPhotoFile] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  // FIX: show existing photo preview in the edit modal
+  const [photoPreview, setPhotoPreview] = useState(faculty?.photo?.url || null);
   const photoRef = useRef();
 
   function set(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
-  function setSocial(field, value) {
-    setForm((prev) => ({
-      ...prev,
-      socialLinks: { ...prev.socialLinks, [field]: value },
-    }));
-  }
+  // FIX: removed setSocial — social links are now flat fields, use set() directly
 
   async function handleSave(e) {
     e.preventDefault();
@@ -312,11 +316,12 @@ function FacultyModal({ faculty, onClose, onSaved, onPhotoUpload, addToast }) {
               {/* Full Bio */}
               <div style={{ ...groupStyle, gridColumn: "1/-1" }}>
                 <label style={labelStyle}>Full Bio</label>
+                {/* FIX: field was fullBio — backend field is `bio` */}
                 <textarea
                   rows={4}
                   style={{ ...inputStyle, resize: "vertical" }}
-                  value={form.fullBio}
-                  onChange={(e) => set("fullBio", e.target.value)}
+                  value={form.bio}
+                  onChange={(e) => set("bio", e.target.value)}
                   placeholder="Detailed biography"
                 />
               </div>
@@ -324,11 +329,12 @@ function FacultyModal({ faculty, onClose, onSaved, onPhotoUpload, addToast }) {
               <div style={{ ...groupStyle, gridColumn: "1/-1" }}>
                 <label style={{ ...labelStyle, marginBottom: 8 }}>Social Links</label>
                 <div className="modal-form-grid" style={{ gap: "8px 16px" }}>
+                  {/* FIX: use flat form fields matching the backend model */}
                   {[
-                    { key: "facebook", icon: "bi-facebook", placeholder: "Facebook URL" },
+                    { key: "facebook",  icon: "bi-facebook",  placeholder: "Facebook URL" },
                     { key: "instagram", icon: "bi-instagram", placeholder: "Instagram URL" },
-                    { key: "linkedin", icon: "bi-linkedin", placeholder: "LinkedIn URL" },
-                    { key: "youtube", icon: "bi-youtube", placeholder: "YouTube URL" },
+                    { key: "linkedin",  icon: "bi-linkedin",  placeholder: "LinkedIn URL" },
+                    { key: "youtube",   icon: "bi-youtube",   placeholder: "YouTube URL" },
                   ].map(({ key, icon, placeholder }) => (
                     <div
                       key={key}
@@ -358,8 +364,8 @@ function FacultyModal({ faculty, onClose, onSaved, onPhotoUpload, addToast }) {
                           borderRadius: 0,
                           flex: 1,
                         }}
-                        value={form.socialLinks[key]}
-                        onChange={(e) => setSocial(key, e.target.value)}
+                        value={form[key]}
+                        onChange={(e) => set(key, e.target.value)}
                         placeholder={placeholder}
                       />
                     </div>
@@ -378,13 +384,14 @@ function FacultyModal({ faculty, onClose, onSaved, onPhotoUpload, addToast }) {
                     userSelect: "none",
                   }}
                 >
+                  {/* FIX: toggle between "active"/"inactive" strings */}
                   <div
-                    onClick={() => set("isActive", !form.isActive)}
+                    onClick={() => set("status", form.status === "active" ? "inactive" : "active")}
                     style={{
                       width: 44,
                       height: 24,
                       borderRadius: 999,
-                      background: form.isActive ? "var(--primary)" : "var(--border)",
+                      background: form.status === "active" ? "var(--primary)" : "var(--border)",
                       position: "relative",
                       cursor: "pointer",
                       transition: "background 0.2s",
@@ -394,7 +401,7 @@ function FacultyModal({ faculty, onClose, onSaved, onPhotoUpload, addToast }) {
                       style={{
                         position: "absolute",
                         top: 3,
-                        left: form.isActive ? 22 : 3,
+                        left: form.status === "active" ? 22 : 3,
                         width: 18,
                         height: 18,
                         borderRadius: "50%",
@@ -405,7 +412,7 @@ function FacultyModal({ faculty, onClose, onSaved, onPhotoUpload, addToast }) {
                     />
                   </div>
                   <span style={{ fontSize: "0.9rem", color: "var(--text-secondary)" }}>
-                    {form.isActive ? "Active" : "Inactive"}
+                    {form.status === "active" ? "Active" : "Inactive"}
                   </span>
                 </label>
               </div>
@@ -426,13 +433,25 @@ function FacultyModal({ faculty, onClose, onSaved, onPhotoUpload, addToast }) {
                   <i className="bi bi-camera" style={{ marginRight: 6 }} />
                   Profile Photo
                 </label>
+                {/* FIX: show existing photo preview */}
+                {photoPreview && (
+                  <img
+                    src={photoPreview}
+                    alt="Photo"
+                    style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", marginBottom: 10, border: "2px solid var(--border)", display: "block" }}
+                  />
+                )}
                 <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                   <input
                     type="file"
                     accept="image/*"
                     ref={photoRef}
                     style={{ display: "none" }}
-                    onChange={(e) => setPhotoFile(e.target.files[0] || null)}
+                    onChange={(e) => {
+                      const f = e.target.files[0] || null;
+                      setPhotoFile(f);
+                      if (f) setPhotoPreview(URL.createObjectURL(f));
+                    }}
                   />
                   <button
                     type="button"
@@ -688,9 +707,10 @@ export default function AdminFaculty() {
                     onMouseLeave={(e) => (e.currentTarget.style.background = "")}
                   >
                     <td style={tdStyle}>
-                      {f.photo ? (
+                      {/* FIX: f.photo is {url, publicId} object, not a plain URL string */}
+                      {f.photo?.url ? (
                         <img
-                          src={f.photo}
+                          src={f.photo.url}
                           alt={f.name}
                           style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 6, display: "block" }}
                         />
@@ -722,7 +742,8 @@ export default function AdminFaculty() {
                       {f.designation || "—"}
                     </td>
                     <td style={tdStyle}>
-                      <StatusBadge active={f.isActive !== false} />
+                      {/* FIX: backend stores status enum "active"/"inactive", not isActive boolean */}
+                      <StatusBadge active={f.status === "active"} />
                     </td>
                     <td style={{ ...tdStyle, textAlign: "right" }}>
                       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>

@@ -140,7 +140,10 @@ const StarDisplay = ({ rating }) => (
 );
 
 // ── MODAL ─────────────────────────────────────────────────────
-const EMPTY_FORM = { name: "", designation: "", content: "", rating: 5, status: "Pending" };
+// FIX: Status values must be lowercase to match the Mongoose enum
+// { "pending", "approved", "rejected" }. Previously used capitalized
+// strings which caused Mongoose validation errors on every save.
+const EMPTY_FORM = { name: "", designation: "", content: "", rating: 5, status: "pending" };
 
 const TestimonialModal = ({ initial, onClose, onSaved, showToast }) => {
   const [form, setForm] = useState(initial ? {
@@ -148,7 +151,8 @@ const TestimonialModal = ({ initial, onClose, onSaved, showToast }) => {
     designation: initial.designation || "",
     content: initial.content || "",
     rating: initial.rating ?? 5,
-    status: initial.status || "Pending",
+    // FIX: normalize to lowercase to match backend enum
+    status: (initial.status || "pending").toLowerCase(),
   } : { ...EMPTY_FORM });
   const [saving, setSaving] = useState(false);
   const [avatarFile, setAvatarFile] = useState(null);
@@ -258,10 +262,11 @@ const TestimonialModal = ({ initial, onClose, onSaved, showToast }) => {
             </div>
             <div>
               <label style={labelStyle}>Status</label>
+              {/* FIX: option values are lowercase to match backend enum */}
               <select value={form.status} onChange={set("status")} style={inputStyle}>
-                <option value="Pending">Pending</option>
-                <option value="Approved">Approved</option>
-                <option value="Rejected">Rejected</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
               </select>
             </div>
           </div>
@@ -398,20 +403,21 @@ export default function AdminTestimonials() {
                     {/* Actions */}
                     <td style={{ padding: "12px 16px" }}>
                       <div style={{ display: "flex", gap: 6, flexWrap: "nowrap" }}>
-                        {item.status !== "Approved" && (
+                        {/* FIX: send lowercase status values matching the backend enum */}
+                        {(item.status || "pending") !== "approved" && (
                           <button
                             disabled={statusLoading[item._id]}
-                            onClick={() => quickStatus(item, "Approved")}
+                            onClick={() => quickStatus(item, "approved")}
                             style={btnStyle("success", true)}
                             title="Approve"
                           >
                             <i className="bi bi-check-lg" />
                           </button>
                         )}
-                        {item.status !== "Rejected" && (
+                        {(item.status || "pending") !== "rejected" && (
                           <button
                             disabled={statusLoading[item._id]}
-                            onClick={() => quickStatus(item, "Rejected")}
+                            onClick={() => quickStatus(item, "rejected")}
                             style={{ ...btnStyle("ghost", true), color: "var(--danger)" }}
                             title="Reject"
                           >

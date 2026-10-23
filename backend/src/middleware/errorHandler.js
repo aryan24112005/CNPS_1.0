@@ -1,5 +1,6 @@
 "use strict";
 const multer = require("multer");
+const { UniqueConstraintError, ValidationError } = require("sequelize");
 
 function errorHandler(err, req, res, next) {
   console.error("[Error]", err);
@@ -15,19 +16,19 @@ function errorHandler(err, req, res, next) {
     return res.status(400).json({ success: false, message: "File upload error: " + err.message });
   }
 
-  // Cloudinary / validation errors
-  if (err.message && (err.message.includes("Only") || err.message.includes("allowed"))) {
+  // File validation errors (from mediaService)
+  if (err.message && (err.message.includes("Only") || err.message.includes("allowed") || err.message.includes("not allowed"))) {
     return res.status(400).json({ success: false, message: err.message });
   }
 
-  // Mongoose validation errors
-  if (err.name === "ValidationError") {
-    const messages = Object.values(err.errors).map((e) => e.message).join(", ");
+  // Sequelize validation errors
+  if (err instanceof ValidationError) {
+    const messages = err.errors.map((e) => e.message).join(", ");
     return res.status(400).json({ success: false, message: messages });
   }
 
-  // Mongoose duplicate key
-  if (err.code === 11000) {
+  // Sequelize unique constraint errors
+  if (err instanceof UniqueConstraintError) {
     return res.status(400).json({ success: false, message: "A record with this information already exists." });
   }
 
