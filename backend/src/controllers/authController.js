@@ -3,7 +3,7 @@ const crypto       = require("crypto");
 const jwt          = require("jsonwebtoken");
 const bcrypt       = require("bcryptjs");
 const { Admin }    = require("../models/sql");
-const gmailService = require("../services/gmailService");
+const emailService = require("../services/emailService");
 const { serializeAdmin } = require("../utils/serializers");
 
 // ── POST /api/auth/login ──────────────────────────────────────
@@ -127,14 +127,14 @@ const forgotPassword = async (req, res) => {
       (isDev ? "http://localhost:5173" : "https://cnpspublicschool.netlify.app");
     const resetUrl = frontendUrl + "/login?resetToken=" + rawToken;
 
-    // ── 3. Check Gmail API credentials ───────────────────────
-    const missing = gmailService.missingCredentials();
+    // ── 3. Check SMTP credentials ─────────────────────────────
+    const missing = emailService.missingCredentials();
     if (missing.length > 0) {
-      console.error("[ForgotPassword] Gmail API credentials not configured:", missing.join(", "));
+      console.error("[ForgotPassword] SMTP credentials not configured:", missing.join(", "));
       if (isDev) {
         return res.json({
           success:    true,
-          message:    "Gmail API not configured (dev mode). Use the token below.",
+          message:    "SMTP email not configured (dev mode). Use the token below.",
           resetToken: rawToken,
           resetUrl,
         });
@@ -145,11 +145,11 @@ const forgotPassword = async (req, res) => {
       });
     }
 
-    // ── 4. Send the password-reset email via Gmail API ───────
-    console.log("[ForgotPassword] Sending reset email via Gmail API | recipient:", admin.email);
+    // ── 4. Send the password-reset email via SMTP ─────────────
+    console.log("[ForgotPassword] Sending reset email via SMTP | recipient:", admin.email);
 
     try {
-      const result = await gmailService.sendEmail({
+      const result = await emailService.sendEmail({
         to:      admin.email,
         subject: "Reset Your CNPS Admin Password",
         html:    buildResetEmailHtml(admin.name, resetUrl, expiresAt),
@@ -157,7 +157,7 @@ const forgotPassword = async (req, res) => {
       });
 
       console.log(
-        "[ForgotPassword] Reset email accepted — Gmail ID:", result.messageId,
+        "[ForgotPassword] Reset email sent — messageId:", result.messageId,
         "| recipient:", admin.email
       );
 
@@ -166,7 +166,7 @@ const forgotPassword = async (req, res) => {
         message: "A password reset link has been sent to your email address.",
       });
     } catch (sendErr) {
-      console.error("[ForgotPassword] Gmail API send failed:", sendErr.message);
+      console.error("[ForgotPassword] SMTP send failed:", sendErr.message);
       return res.status(500).json({
         success: false,
         message: "Failed to send reset email. Please try again later or contact support.",
