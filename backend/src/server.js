@@ -21,7 +21,7 @@ app.use(helmet({
 
 // ── CORS ─────────────────────────────────────────────────────
 const allowedOrigins = [
-  "https://cnpspublicschool.netlify.app",
+  "https://cnpspublicschooll.netlify.app",
   ...(process.env.FRONTEND_URL || "http://localhost:5173")
     .split(",").map((s) => s.trim()).filter(Boolean),
 ].filter((v, i, arr) => arr.indexOf(v) === i);

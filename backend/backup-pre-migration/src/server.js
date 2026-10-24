@@ -29,7 +29,7 @@ app.use(helmet({
 // For local dev, set FRONTEND_URL=http://localhost:5173 in backend/.env
 const allowedOrigins = [
   // Always allow the production Netlify frontend
-  "https://cnpspublicschool.netlify.app",
+  "https://cnpspublicschooll.netlify.app",
   // Also allow any origins configured via environment variable (supports comma-separated list)
   ...(process.env.FRONTEND_URL || "http://localhost:5173")
     .split(",").map((s) => s.trim()).filter(Boolean),

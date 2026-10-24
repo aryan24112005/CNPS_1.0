@@ -128,7 +128,7 @@ const forgotPassword = async (req, res) => {
     // a localhost link in a live reset email.
     const rawFrontendUrl = (process.env.FRONTEND_URL || "").split(",")[0].trim();
     const frontendUrl    = rawFrontendUrl ||
-      (isDev ? "http://localhost:5173" : "https://cnpspublicschool.netlify.app");
+      (isDev ? "http://localhost:5173" : "https://cnpspublicschooll.netlify.app");
     const resetUrl = frontendUrl + "/login?resetToken=" + rawToken;
     // NOTE: rawToken is in resetUrl — resetUrl must never be logged.
 

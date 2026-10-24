@@ -124,7 +124,7 @@ const forgotPassword = async (req, res) => {
     // ── 2. Build the reset URL ────────────────────────────────
     const rawFrontendUrl = (process.env.FRONTEND_URL || "").split(",")[0].trim();
     const frontendUrl    = rawFrontendUrl ||
-      (isDev ? "http://localhost:5173" : "https://cnpspublicschool.netlify.app");
+      (isDev ? "http://localhost:5173" : "https://cnpspublicschooll.netlify.app");
     const resetUrl = frontendUrl + "/login?resetToken=" + rawToken;
 
     // ── 3. Check SMTP credentials ─────────────────────────────
